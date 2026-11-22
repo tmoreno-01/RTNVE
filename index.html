@@ -1,98 +1,150 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#ffffff">
-  <meta name="robots" content="noindex,nofollow">
-  <title>lab</title>
-  <style>
-    :root { color-scheme: light; font-family:Arial,Helvetica,sans-serif; background:#fff; color:#111; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:#fff; }
-    button,select,input { font:inherit; }
-    .page { width:100%; padding:24px clamp(18px,2.6vw,46px) 28px; }
-    h1 { font-size:24px; font-weight:600; margin:0 0 24px; line-height:1; letter-spacing:-.06em; }
-    .layout { display:grid; grid-template-columns:minmax(0,1fr) 244px; gap:30px; align-items:start; }
-    .art { width:100%; height: min(78vh,900px); min-height:400px; overflow:hidden; background:#fafaf8; }
-    canvas { display:block; width:100%; height:100%; }
-    aside { padding-top:2px; font-size:12px; }
-    .panelTitle { margin:0 0 25px; font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
-    .field { margin-bottom:23px; }
-    label { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; font-size:12px; }
-    output { font-size:11px; color:#666; font-variant-numeric:tabular-nums; }
-    select { border:1px solid #c9cdcb; background:#fff; color:#111; width:100%; padding:9px 8px; outline-offset:3px; }
-    input[type=range] { display:block; width:100%; margin:0; accent-color:#121212; cursor:pointer; }
-    .buttons { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
-    button { background:#fff; color:#111; border:1px solid #bbb; padding:10px 7px; cursor:pointer; }
-    button:hover:not(:disabled){background:#f2f2ef}
-    button:disabled { cursor:default; opacity:.4; }
-    button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #111;outline-offset:3px;}
-    .status { padding-top:17px; min-height:35px; color:#757575; line-height:1.6; font-size:11px; overflow-wrap:anywhere; }
-    .under { color:#777; display:flex; justify-content:space-between; gap:14px; margin-top:8px; font-size:11px; font-variant-numeric:tabular-nums; }
-    .under span:last-child{white-space:nowrap}
-    .copyright { margin-top:24px; color:#888; font-size:10px; }
-    @media(max-width:850px){
-      .page{padding:18px 18px 28px}
-      h1{margin-bottom:19px;font-size:22px}
-      .layout{grid-template-columns:1fr;gap:20px}
-      .art{height:min(63vh,620px);min-height:270px}
-      aside{max-width:500px}
-      .field{margin-bottom:19px}
-    }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#fff"><title>lab</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#111;background:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:#fff}
+button,input,select{font:inherit}
+main{padding:22px clamp(18px,2.4vw,43px) 30px;min-height:100dvh}
+h1{font-size:25px;letter-spacing:-.055em;line-height:1;font-weight:650;margin:0 0 27px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 242px;gap:25px;align-items:start}
+.art{display:flex;align-items:center;justify-content:center;width:100%;height:min(78vh,900px);min-height:350px;background:#fafaf9;overflow:hidden}
+canvas{display:block;max-width:100%;max-height:100%;object-fit:contain}
+.statusline{display:flex;justify-content:space-between;gap:10px;margin-top:10px;font-size:11px;color:#666}
+aside{padding-top:3px;font-size:12px}
+h2{font-weight:650;text-transform:uppercase;letter-spacing:.09em;font-size:11px;margin:0 0 24px}
+.field{margin-bottom:22px}
+label{display:flex;justify-content:space-between;gap:6px;margin-bottom:10px}
+output{font-variant-numeric:tabular-nums;color:#555;font-size:11px}
+select{width:100%;border:1px solid #c9c9c9;padding:9px;background:#fff;color:#111}
+input[type=range]{accent-color:#101010;width:100%;cursor:pointer}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+button{border:1px solid #bcbcbc;background:#fff;color:#111;padding:11px 5px;cursor:pointer}
+button:disabled{opacity:.4;cursor:default}button:not(:disabled):hover{background:#eee}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #111;outline-offset:3px}
+#message{margin-top:18px;line-height:1.5;color:#737373;font-size:11px;overflow-wrap:anywhere;min-height:48px}
+.explain{border-top:1px solid #ddd;margin-top:18px;padding-top:14px;color:#777;font-size:11px;line-height:1.55}
+a{color:#444}
+@media(max-width:800px){
+ main{padding:18px}
+ h1{font-size:23px;margin-bottom:19px}
+ .layout{grid-template-columns:1fr}
+ .art{height:min(62vh,650px);min-height:270px}
+ aside{max-width:470px}
+}
+</style>
 </head>
 <body>
-  <main class="page">
-    <h1>lab</h1>
-    <div class="layout">
-      <section>
-        <div class="art" id="stage">
-          <canvas id="art" aria-label="Living generative neural crowd of faces"></canvas>
-        </div>
-        <div class="under"><span id="details">Neural faces loading</span><span id="fps">— fps</span></div>
-      </section>
-      <aside>
-        <div class="panelTitle">01 / Neural crowd</div>
-        <div class="field">
-          <label for="count">Faces</label>
-          <select id="count">
-            <option value="6">6 faces</option>
-            <option value="9">9 faces</option>
-            <option value="12" selected>12 faces</option>
-            <option value="15">15 faces</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="speed">Evolution speed <output id="speedValue">0.70</output></label>
-          <input id="speed" type="range" min="0" max="1" value="0.70" step="0.01">
-        </div>
-        <div class="field">
-          <label for="chaos">Mutation <output id="chaosValue">0.70</output></label>
-          <input id="chaos" type="range" min="0" max="1" value="0.70" step="0.01">
-        </div>
-        <div class="field">
-          <label for="morph">Organic morph <output id="morphValue">0.80</output></label>
-          <input id="morph" type="range" min="0" max="1" value="0.80" step="0.01">
-        </div>
-        <div class="buttons">
-          <button id="seed" disabled>New faces</button>
-          <button id="pause" disabled>Pause</button>
-          <button id="save" disabled>Save image</button>
-          <button id="fullscreen" type="button">Fullscreen</button>
-        </div>
-        <p class="status" role="status" aria-live="polite" id="status">Starting live neural generation…</p>
-        <div class="copyright">Research build · Browser WebGPU · Real neural inference</div>
-      </aside>
-    </div>
-  </main>
-  <script>
-    document.getElementById("fullscreen").onclick=async()=>{
-      const stage=document.getElementById("stage");
-      try{if(document.fullscreenElement)await document.exitFullscreen();else await stage.requestFullscreen();}
-      catch(error){document.getElementById("status").textContent=error.message;}
-    };
-  </script>
-  <script type="module" src="./neural-crowd.js"></script>
+<main>
+<h1>lab</h1>
+<div class="layout">
+<section>
+<div class="art" id="stage"><canvas id="art" aria-label="Live neural generated image"></canvas></div>
+<div class="statusline"><span id="state">Loading neural model…</span><span id="fps">— FPS</span></div>
+</section>
+<aside>
+<h2>01 / Full-frame neural test</h2>
+<div class="field">
+<label for="model">Model</label>
+<select id="model"><option value="amber">Abstract environments (FastGAN)</option><option value="ffhq">Portrait study (StyleGAN2)</option></select>
+</div>
+<div class="field"><label for="speed">Evolution speed <output id="speedValue">0.65</output></label>
+<input id="speed" type="range" min="0" max="1" step=".01" value=".65"></div>
+<div class="field"><label for="spread">Variation <output id="spreadValue">0.70</output></label>
+<input id="spread" type="range" min="0" max="1" step=".01" value=".70"></div>
+<div class="actions">
+<button id="seed" disabled>New seed</button><button id="pause" disabled>Pause</button>
+<button id="save" disabled>Save image</button><button id="full">Fullscreen</button>
+</div>
+<div id="message" role="status" aria-live="polite">Loading real GPU neural inference…</div>
+<div class="explain">This is a working <b>single-frame GAN baseline</b>, not yet a learned AnimateDiff-style crowd. No tiled portraits or video playback. The next model must be trained on complete AnimateDiff frames and then on their temporal sequences.</div>
+</aside>
+</div>
+</main>
+<script type="module">
+import {gpu, Player, loadPlayable, HAND, HAND_PRIORITY} from "./vendor/ganlive/player.mjs";
+const $=s=>document.getElementById(s);
+const options={
+ amber:{name:"Amber",base:"https://huggingface.co/gustavecortal/ganlive-amber/resolve/main/engine/"},
+ ffhq:{name:"FFHQ",base:"https://huggingface.co/gustavecortal/ganlive-ffhq/resolve/main/engine/"}
+};
+let device=null,player=null,busy=false,paused=false,visible=true,loopStarted=false,lastFps=0,loadId=0;
+const message=s=>$("message").textContent=s;
+function resize(){
+ if(!player?.current)return;
+ const model=player.current;
+ const stage=$("stage").getBoundingClientRect();
+ const scale=Math.min(1,stage.width/model.width,stage.height/model.height);
+ const w=Math.max(1,Math.floor(scale*model.width)),h=Math.max(1,Math.floor(scale*model.height));
+ const dpr=Math.min(2,devicePixelRatio||1);
+ $("art").style.width=w+"px";$("art").style.height=h+"px";
+ player.show(Math.max(1,Math.round(w*dpr)),Math.max(1,Math.round(h*dpr)));
+}
+function controls(){
+ if(!player?.runner)return;
+ player.runner.hold(HAND,{speed:+$("speed").value,spread:+$("spread").value,hold:0},HAND_PRIORITY);
+}
+async function load(){
+ if(busy)return;busy=true;paused=true;
+ const id=++loadId;
+ try{
+  message("Loading neural model…");
+  $("state").textContent="Loading";
+  for(const item of ["seed","pause","save"])$(item).disabled=true;
+  if(!isSecureContext||!navigator.gpu)throw Error("WebGPU requires HTTPS and a compatible browser.");
+  if(player){player.stop();player=null;}
+  if(!device){device=await gpu();device.lost.then(e=>{paused=true;device=null;message("GPU device lost: "+(e?.message||"reload"))})}
+  const choice=options[$("model").value];
+  const entry=await loadPlayable(device,choice.base,choice.name,{
+   onStage:s=>{if(loadId===id)message({download:"Downloading neural model…",compile:"Compiling GPU shaders…",draw:"Rendering first neural image…"}[s]||s)},
+   onProgress:bytes=>{if(loadId===id)message("Downloaded "+(bytes/1048576).toFixed(0)+" MB")}
+  });
+  player=new Player(device,$("art"),{fps:60,bpm:125});
+  player.add(entry);controls();resize();
+  paused=false;$("pause").textContent="Pause";
+  for(const item of ["seed","pause","save"])$(item).disabled=false;
+  $("state").textContent="Live neural inference";message("This model generates one complete image per frame.");
+  if(!loopStarted){loopStarted=true;requestAnimationFrame(tick)}
+ }catch(e){message("Model failed: "+(e?.message||e));$("state").textContent="Error";console.error(e)}
+ finally{busy=false}
+}
+function tick(now){
+ requestAnimationFrame(tick);
+ if(!player||paused||document.hidden||!visible)return;
+ try{player.frame(now)}catch(e){paused=true;message("Generation failed: "+(e?.message||e));return}
+ if(now-lastFps>950){lastFps=now;$("fps").textContent=(player.stats.fps||0).toFixed(0)+" FPS"}
+}
+for(const id of ["speed","spread"]){
+ $(id).addEventListener("input",()=>{$(id+"Value").textContent=(+$(id).value).toFixed(2);controls()})
+}
+$("model").onchange=load;
+$("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"Resume":"Pause";if(player)player.last=null};
+$("seed").onclick=()=>{
+ if(!player)return;const seed=Math.floor(Math.random()*1000000000);
+ player.runner.load({...player.runner.preset,base_seed:seed});
+ player.walk.key=null;player.clock.beats=0;player.redraw=true;controls();
+ message("New neural seed "+seed);
+};
+$("save").onclick=async()=>{
+ if(!player)return;
+ try{
+  const blob=await player.picture(),u=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=u;a.download="lab-neural-"+Date.now()+".png";a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),1500);
+ }catch(e){message("Capture failed: "+(e?.message||e))}
+};
+$("full").onclick=async()=>{
+ try{if(document.fullscreenElement)await document.exitFullscreen();else await $("stage").requestFullscreen()}
+ catch(e){message(e.message)}
+};
+new ResizeObserver(resize).observe($("stage"));
+new IntersectionObserver(([x])=>{visible=x?.isIntersecting??true;if(player)player.last=null},{threshold:.01}).observe($("stage"));
+window.addEventListener("resize",resize);
+document.addEventListener("fullscreenchange",resize);
+load();
+</script>
 </body>
 </html>
