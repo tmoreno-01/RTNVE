@@ -2,140 +2,97 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#ffffff">
-  <meta name="robots" content="noindex, nofollow">
+  <meta name="robots" content="noindex,nofollow">
   <title>lab</title>
   <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; min-height: 100%; background: white; }
-    body { font-family: Arial, Helvetica, sans-serif; color: #111; }
-    .page { min-height: 100dvh; display: flex; flex-direction: column; padding: 25px 28px 30px; }
-    h1 { margin: 0; font-size: 24px; line-height: 1; font-weight: 600; letter-spacing: -.055em; }
-    .artwork { flex: 1; min-height: 0; display: grid; place-items: center; padding: 22px 0 8px; }
-    canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 115px); object-fit: contain; }
-    .error { display: none; max-width: 410px; font-size: 12px; color: #555; text-align: center; line-height: 1.7; padding: 15px; }
-    .error[aria-hidden="false"] { display: block; }
-    .sr-only { position: absolute; height: 1px; width: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    @media (max-width: 650px) {
-      .page { padding: 18px 18px 20px; }
-      h1 { font-size: 22px; }
-      .artwork { padding: 18px 0; }
-      canvas { max-height: calc(100dvh - 95px); }
+    :root { color-scheme: light; font-family:Arial,Helvetica,sans-serif; background:#fff; color:#111; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#fff; }
+    button,select,input { font:inherit; }
+    .page { width:100%; padding:24px clamp(18px,2.6vw,46px) 28px; }
+    h1 { font-size:24px; font-weight:600; margin:0 0 24px; line-height:1; letter-spacing:-.06em; }
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 244px; gap:30px; align-items:start; }
+    .art { width:100%; height: min(78vh,900px); min-height:400px; overflow:hidden; background:#fafaf8; }
+    canvas { display:block; width:100%; height:100%; }
+    aside { padding-top:2px; font-size:12px; }
+    .panelTitle { margin:0 0 25px; font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+    .field { margin-bottom:23px; }
+    label { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; font-size:12px; }
+    output { font-size:11px; color:#666; font-variant-numeric:tabular-nums; }
+    select { border:1px solid #c9cdcb; background:#fff; color:#111; width:100%; padding:9px 8px; outline-offset:3px; }
+    input[type=range] { display:block; width:100%; margin:0; accent-color:#121212; cursor:pointer; }
+    .buttons { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    button { background:#fff; color:#111; border:1px solid #bbb; padding:10px 7px; cursor:pointer; }
+    button:hover:not(:disabled){background:#f2f2ef}
+    button:disabled { cursor:default; opacity:.4; }
+    button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #111;outline-offset:3px;}
+    .status { padding-top:17px; min-height:35px; color:#757575; line-height:1.6; font-size:11px; overflow-wrap:anywhere; }
+    .under { color:#777; display:flex; justify-content:space-between; gap:14px; margin-top:8px; font-size:11px; font-variant-numeric:tabular-nums; }
+    .under span:last-child{white-space:nowrap}
+    .copyright { margin-top:24px; color:#888; font-size:10px; }
+    @media(max-width:850px){
+      .page{padding:18px 18px 28px}
+      h1{margin-bottom:19px;font-size:22px}
+      .layout{grid-template-columns:1fr;gap:20px}
+      .art{height:min(63vh,620px);min-height:270px}
+      aside{max-width:500px}
+      .field{margin-bottom:19px}
     }
   </style>
 </head>
 <body>
   <main class="page">
     <h1>lab</h1>
-    <div class="artwork" id="stage">
-      <canvas id="art" aria-label="Continuously generated neural artwork"></canvas>
-      <p class="error" id="error" aria-hidden="true"></p>
+    <div class="layout">
+      <section>
+        <div class="art" id="stage">
+          <canvas id="art" aria-label="Living generative neural crowd of faces"></canvas>
+        </div>
+        <div class="under"><span id="details">Neural faces loading</span><span id="fps">— fps</span></div>
+      </section>
+      <aside>
+        <div class="panelTitle">01 / Neural crowd</div>
+        <div class="field">
+          <label for="count">Faces</label>
+          <select id="count">
+            <option value="6">6 faces</option>
+            <option value="9">9 faces</option>
+            <option value="12" selected>12 faces</option>
+            <option value="15">15 faces</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="speed">Evolution speed <output id="speedValue">0.70</output></label>
+          <input id="speed" type="range" min="0" max="1" value="0.70" step="0.01">
+        </div>
+        <div class="field">
+          <label for="chaos">Mutation <output id="chaosValue">0.70</output></label>
+          <input id="chaos" type="range" min="0" max="1" value="0.70" step="0.01">
+        </div>
+        <div class="field">
+          <label for="morph">Organic morph <output id="morphValue">0.80</output></label>
+          <input id="morph" type="range" min="0" max="1" value="0.80" step="0.01">
+        </div>
+        <div class="buttons">
+          <button id="seed" disabled>New faces</button>
+          <button id="pause" disabled>Pause</button>
+          <button id="save" disabled>Save image</button>
+          <button id="fullscreen" type="button">Fullscreen</button>
+        </div>
+        <p class="status" role="status" aria-live="polite" id="status">Starting live neural generation…</p>
+        <div class="copyright">Research build · Browser WebGPU · Real neural inference</div>
+      </aside>
     </div>
-    <div class="sr-only" id="status" role="status" aria-live="polite">Loading neural artwork.</div>
   </main>
-  <script type="module">
-    // Actual generative neural inference. The source is a pinned, vendored
-    // copy of ganlive; the model is an existing test model, not yet custom-trained.
-    import { gpu, Player, loadPlayable, HAND, HAND_PRIORITY } from "./vendor/ganlive/player.mjs";
-
-    const canvas = document.getElementById("art");
-    const stage = document.getElementById("stage");
-    const error = document.getElementById("error");
-    const status = document.getElementById("status");
-
-    // A URL parameter allows internal A/B testing without adding any interface.
-    // Default: photographic places / textures. ?model=faces tests portrait synthesis.
-    const models = {
-      places: {
-        name: "Amber",
-        base: "https://huggingface.co/gustavecortal/ganlive-amber/resolve/main/engine/"
-      },
-      faces: {
-        name: "FFHQ",
-        base: "https://huggingface.co/gustavecortal/ganlive-ffhq/resolve/main/engine/"
-      }
+  <script>
+    document.getElementById("fullscreen").onclick=async()=>{
+      const stage=document.getElementById("stage");
+      try{if(document.fullscreenElement)await document.exitFullscreen();else await stage.requestFullscreen();}
+      catch(error){document.getElementById("status").textContent=error.message;}
     };
-    const selected = new URLSearchParams(location.search).get("model") === "faces"
-      ? models.faces : models.places;
-
-    let player, device, running = false;
-    let previousVisibility = false;
-
-    function fit() {
-      if (!player?.current) return;
-      const model = player.current;
-      const rect = stage.getBoundingClientRect();
-      const ratio = Math.min(
-        rect.width / model.width,
-        rect.height / model.height,
-        1
-      );
-      const w = Math.max(1, Math.floor(model.width * ratio));
-      const h = Math.max(1, Math.floor(model.height * ratio));
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.style.width = w + "px";
-      canvas.style.height = h + "px";
-      player.show(Math.max(1, Math.floor(w * dpr)), Math.max(1, Math.floor(h * dpr)));
-    }
-
-    function frame(now) {
-      requestAnimationFrame(frame);
-      if (!running || !player || document.hidden || !previousVisibility) return;
-      try {
-        player.frame(now);
-      } catch (e) {
-        running = false;
-        showError(e);
-      }
-    }
-
-    function showError(e) {
-      console.error("lab neural generation:", e);
-      status.textContent = "Neural artwork could not start.";
-      error.textContent = "This neural experiment needs WebGPU in a supported browser with hardware acceleration. " +
-        "Technical error: " + (e?.message || String(e));
-      error.setAttribute("aria-hidden", "false");
-      canvas.style.display = "none";
-    }
-
-    async function start() {
-      try {
-        if (!isSecureContext || !navigator.gpu) {
-          throw new Error("WebGPU unavailable. Use an HTTPS page in current Chrome or Edge.");
-        }
-        status.textContent = "Loading neural model weights.";
-        device = await gpu();
-        device.lost.then(info => {
-          if (running) {
-            running = false;
-            showError(new Error("GPU connection lost: " + (info.message || "unknown reason")));
-          }
-        });
-
-        const entry = await loadPlayable(device, selected.base, selected.name, {
-          onStage: step => { status.textContent = "Neural model: " + step; }
-        });
-
-        player = new Player(device, canvas, { fps: 60, bpm: 125 });
-        player.add(entry);
-        player.runner.hold(HAND, { speed: .65, spread: .72, hold: 0 }, HAND_PRIORITY);
-        fit();
-        running = true;
-        status.textContent = "Live neural artwork generating.";
-        requestAnimationFrame(frame);
-      } catch (e) {
-        showError(e);
-      }
-    }
-
-    new ResizeObserver(fit).observe(stage);
-    new IntersectionObserver(([entry]) => {
-      previousVisibility = entry?.isIntersecting ?? true;
-      if (player) player.last = null; // avoid a time jump when returning onscreen
-    }, { threshold: 0.01 }).observe(stage);
-    document.addEventListener("visibilitychange", () => { if (player) player.last = null; });
-    start();
   </script>
+  <script type="module" src="./neural-crowd.js"></script>
 </body>
 </html>
