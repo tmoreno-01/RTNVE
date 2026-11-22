@@ -1,0 +1,24 @@
+# Local training and model files never belong in this static public repo
+dataset/
+datasets/
+checkpoints/
+runs/
+outputs/
+previews/
+cache/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.pkl
+*.onnx
+*.onnx_data
+*.mp4
+*.mov
+*.webm
+*.zip
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
