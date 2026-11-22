@@ -1,168 +1,141 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark"><meta name="robots" content="noindex,nofollow">
-<title>AI LAB — Living Neural Art Experiments</title>
-<style>
-:root{background:#0c0d0d;color:#e8e8e3;font-family:Arial,Helvetica,sans-serif;font-synthesis:none}
-*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0}button,select,input{font:inherit}button,select{color:inherit;border:1px solid #393d3d;background:#1b1d1d;border-radius:2px}
-button{padding:11px 15px;cursor:pointer}button:hover:not(:disabled){background:#303434}button:disabled{opacity:.42;cursor:default}
-a{color:#c7d9da;text-underline-offset:3px}main{margin:auto;max-width:1640px;padding:30px clamp(16px,3.4vw,52px) 60px}
-header{display:flex;justify-content:space-between;align-items:start;gap:16px;border-bottom:1px solid #303434;padding-bottom:26px}
-.overline{letter-spacing:.27em;color:#aeb6b6;font-size:11px;font-weight:700}h1{font-size:clamp(30px,4.2vw,56px);line-height:1;letter-spacing:-.075em;font-weight:400;margin:17px 0 9px}
-.subtitle{font-size:13px;color:#969f9e;margin:0;line-height:1.6}header small{color:#879090;font-size:11px;text-align:right}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:17px;margin-top:25px}
-.viewport{background:#080909;border:1px solid #292d2d;position:relative;min-height:490px;overflow:hidden;display:grid;place-items:center}
-#art{display:block;max-width:100%;max-height:75vh;object-fit:contain}
-#splash{pointer-events:none;position:absolute;inset:0;display:grid;place-items:center;padding:25px;text-align:center}
-#splash strong{font-size:17px;line-height:1.4;font-weight:400}#splash p{max-width:370px;font-size:12px;color:#8b9494;line-height:1.6}
-.metrics{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;padding-top:12px;font-size:11px;color:#9aa5a4;font-variant-numeric:tabular-nums}
-.metrics span{display:inline-block;margin-left:15px}.metrics b{color:#e7e7e4;font-weight:500}
-.controls{border:1px solid #303333;background:#151717;align-self:start;padding:20px}
-.controls h2{margin:0 0 20px;font-size:11px;letter-spacing:.19em;color:#cbd3d2}
-.field{margin-bottom:22px}.field label{display:flex;justify-content:space-between;gap:5px;margin-bottom:10px;font-size:12px;color:#d3d8d7}.field output{color:#aab4b3;font-variant-numeric:tabular-nums}
-.field select{width:100%;padding:12px 8px;font-size:12px}.field input{width:100%;accent-color:#dfe4e4}
-.field p{font-size:11px;line-height:1.5;margin:8px 0 0;color:#8e9997}
-.buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.buttons button{font-size:12px}
-button.primary{grid-column:span 2;background:#e5e9e7;border-color:#e5e9e7;color:#151818;font-weight:700}button.primary:hover:not(:disabled){background:#fff}
-#message{font-size:11px;line-height:1.6;color:#aab5b4;margin:15px 0 0;min-height:36px;overflow-wrap:anywhere}
-.note{font-size:11px;line-height:1.7;color:#899594;border-top:1px solid #323737;padding-top:15px;margin-top:12px}
-.sectionHead{display:flex;justify-content:space-between;gap:14px;align-items:baseline;margin:44px 0 14px}.sectionHead h2{font-size:14px;font-weight:500;letter-spacing:-.015em;margin:0}.sectionHead p{font-size:11px;color:#879290;margin:0}
-.experiments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.exp{min-height:154px;border:1px solid #333737;padding:18px;display:flex;flex-direction:column;gap:12px}.exp strong{font-size:14px;font-weight:500}.exp p{color:#98a3a0;font-size:12px;line-height:1.55;margin:0}.number{font-size:11px;color:#a2adab;letter-spacing:.17em}.tag{font-size:10px;color:#9abbaa;margin-top:auto}
-.summary{margin-top:34px;color:#9da9a7;font-size:12px;line-height:1.8;max-width:950px}.summary b{color:#e3e7e6;font-weight:500}
-#stage:fullscreen{background:#070808;display:grid;place-items:center}#stage:fullscreen #art{max-width:100vw;max-height:100vh}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.viewport{min-height:340px;max-height:70vh}.controls{padding:18px}.experiments{grid-template-columns:1fr}.exp{min-height:122px}.metrics span{margin-left:8px}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="robots" content="noindex, nofollow">
+  <title>lab</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; min-height: 100%; background: white; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; }
+    .page { min-height: 100dvh; display: flex; flex-direction: column; padding: 25px 28px 30px; }
+    h1 { margin: 0; font-size: 24px; line-height: 1; font-weight: 600; letter-spacing: -.055em; }
+    .artwork { flex: 1; min-height: 0; display: grid; place-items: center; padding: 22px 0 8px; }
+    canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 115px); object-fit: contain; }
+    .error { display: none; max-width: 410px; font-size: 12px; color: #555; text-align: center; line-height: 1.7; padding: 15px; }
+    .error[aria-hidden="false"] { display: block; }
+    .sr-only { position: absolute; height: 1px; width: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    @media (max-width: 650px) {
+      .page { padding: 18px 18px 20px; }
+      h1 { font-size: 22px; }
+      .artwork { padding: 18px 0; }
+      canvas { max-height: calc(100dvh - 95px); }
+    }
+  </style>
 </head>
 <body>
-<main>
-<header>
-<div><div class="overline">TYRONE MORENO / EXPERIMENTATION</div><h1>AI LAB.</h1>
-<p class="subtitle">Living neural artworks. Built in the browser. No prerecorded loops.</p></div>
-<small>RESEARCH / EXPERIMENT 001<br>Not connected to the main art website</small>
-</header>
-<div class="layout">
-<section aria-label="Neural image stage">
-<div class="viewport" id="stage">
-<canvas id="art" aria-label="Live generated neural imagery"></canvas>
-<div id="splash"><div><strong>Neural generation, live.</strong><p>Choose a model and load it. Each new frame is generated by a neural network running on your own GPU, not played back from a recording.</p></div></div>
-</div>
-<div class="metrics"><div id="state"><b>OFFLINE</b> / waiting for model</div>
-<div><span>FPS <b id="fps">—</b></span><span>RES <b id="resolution">—</b></span><span>GPU <b id="gpu">—</b></span></div></div>
-</section>
-<aside class="controls">
-<h2>001 / NEURAL MORPH</h2>
-<div class="field"><label for="model">Neural model</label>
-<select id="model">
-<option value="amber">Amber — structures & places / FastGAN</option>
-<option value="ffhq">FFHQ — faces / StyleGAN2</option>
-</select>
-<p>Pretrained test models. Neither has learned your AnimateDiff imagery yet.</p></div>
-<div class="field"><label for="speed">Evolution speed <output id="speedValue">0.65</output></label><input id="speed" type="range" min="0" max="1" step=".01" value=".65"></div>
-<div class="field"><label for="spread">Variation <output id="spreadValue">0.72</output></label><input id="spread" type="range" min="0" max="1" step=".01" value=".72"></div>
-<div class="field"><label for="hold">Stillness <output id="holdValue">0.00</output></label><input id="hold" type="range" min="0" max=".8" step=".01" value="0"></div>
-<div class="field"><label for="tempo">Tempo <output id="tempoValue">125</output></label><input id="tempo" type="range" min="30" max="240" step="1" value="125"></div>
-<div class="buttons">
-<button class="primary" id="load">LOAD NEURAL MODEL</button>
-<button id="pause" disabled>Pause</button>
-<button id="seed" disabled>New seed</button>
-<button id="save" disabled>Save PNG</button>
-<button id="full">Fullscreen</button>
-</div>
-<p id="message" role="status" aria-live="polite">WebGPU required; recommended: Chrome or Edge on desktop.</p>
-<div class="note">This test downloads model weights from Hugging Face. Inference happens locally using WebGPU. There is no video playback and no server GPU. Model download size, speed, and GPU compatibility vary.</div>
-</aside>
-</div>
-<div class="sectionHead"><h2>Experiments</h2><p>Separate tests, one evolving system.</p></div>
-<div class="experiments">
-<div class="exp"><div class="number">001 / ACTIVE</div><strong>Neural morph</strong><p>Continuous image synthesis through a trained latent space. First test: real browser inference, quality and frame rate.</p><div class="tag">AVAILABLE ABOVE</div></div>
-<div class="exp"><div class="number">002 / PLANNED</div><strong>Learn the hallucinations</strong><p>Train a custom neural generator using original CyberRealistic + AnimateDiff V3 frames and varied seeds.</p><div class="tag">MODEL TRAINING REQUIRED</div></div>
-<div class="exp"><div class="number">003 / PLANNED</div><strong>Learn the movement</strong><p>Teach a small model to evolve one image into the next, instead of generating unrelated pictures or blending MP4 frames.</p><div class="tag">TEMPORAL RESEARCH</div></div>
-</div>
-<p class="summary"><b>The actual goal:</b> unpredictable AnimateDiff-style hallucinations — faces, buildings, environments, impossible structures — created continuously and autonomously on your website without a remote GPU or your home computer running. Experiment 001 verifies the fast neural renderer; it does <b>not</b> claim to match AnimateDiff yet.<br><br>
-Browser engine adapted from <a href="https://github.com/gustavecortal/ganlive" target="_blank" rel="noopener">ganlive</a> by Gustave Cortal (MIT licence). Test models are hosted by their respective publishers; model licences apply separately.</p>
-</main>
-<script type="module">
-import {gpu, Player, loadPlayable, HAND, HAND_PRIORITY} from "./vendor/ganlive/player.mjs";
-const $=x=>document.getElementById(x);
-const models={
- amber:{name:"Amber",base:"https://huggingface.co/gustavecortal/ganlive-amber/resolve/main/engine/"},
- ffhq:{name:"FFHQ",base:"https://huggingface.co/gustavecortal/ganlive-ffhq/resolve/main/engine/"}
-};
-let device=null,player=null,playing=false,busy=false,visible=true,request=null,epoch=0;
-function message(s){$("message").textContent=s}
-function status(s){$("state").innerHTML="<b>"+s+"</b>"}
-function controls(){
- if(!player?.runner)return;
- player.runner.hold(HAND,{speed:Number($("speed").value),spread:Number($("spread").value),hold:Number($("hold").value)},HAND_PRIORITY);
- player.clock.bpm=Number($("tempo").value);
-}
-function buttons(on){for(const id of ["pause","seed","save"])$(id).disabled=!on}
-function fit(){
- if(!player?.current)return;
- const box=$("stage").getBoundingClientRect(),m=player.current;
- const s=Math.max(.01,Math.min(box.width/m.width,Math.min(box.height,window.innerHeight*.75)/m.height));
- const cssW=Math.floor(m.width*s),cssH=Math.floor(m.height*s);
- const pixelRatio=Math.min(2,window.devicePixelRatio||1);
- player.show(Math.max(1,Math.round(cssW*pixelRatio)),Math.max(1,Math.round(cssH*pixelRatio)));
- $("art").style.width=cssW+"px";$("art").style.height=cssH+"px";
-}
-async function load(){
- if(busy)return;busy=true;playing=false;
- $("load").disabled=true;$("load").textContent="LOADING…";buttons(false);
- $("splash").hidden=false;
- try{
-  status("CONNECTING");message("Checking WebGPU…");
-  if(!isSecureContext||!navigator.gpu)throw new Error("This page needs WebGPU on HTTPS or localhost, using a supported browser and graphics card.");
-  if(player){player.stop();player=null}
-  if(!device){device=await gpu();device.lost.then(e=>{playing=false;device=null;status("GPU LOST");message("GPU device lost: "+(e.message||"reload and try again"));})}
-  const choice=models[$("model").value];
-  const current=++epoch;
-  const entry=await loadPlayable(device,choice.base,choice.name,{
-   onStage:s=>{if(current===epoch)message({download:"Downloading neural model weights…",compile:"Compiling neural GPU shaders…",draw:"Rendering first generated frame…"}[s]||s)},
-   onProgress:bytes=>{if(current===epoch)message("Downloaded "+(bytes/1048576).toFixed(1)+" MB of neural weights…")}
-  });
-  player=new Player(device,$("art"),{fps:60,bpm:Number($("tempo").value)});
-  player.add(entry);controls();fit();
-  $("resolution").textContent=entry.width+"×"+entry.height;
-  $("gpu").textContent="WEBGPU";
-  $("splash").hidden=true;
-  buttons(true);$("pause").textContent="Pause";playing=true;
-  status("LIVE NEURAL INFERENCE");message("Generating new neural images on your device. Not an MP4.");
-  if(request===null)request=requestAnimationFrame(frame);
- }catch(err){
-  console.error("AI LAB",err);status("LOAD FAILED");message((err?.message||String(err))+". If the model fails to download, check browser console and model-host access.");
-  $("splash").hidden=false;
- }finally{busy=false;$("load").disabled=false;$("load").textContent="LOAD NEURAL MODEL"}
-}
-let last=0;
-function frame(now){
- request=requestAnimationFrame(frame);
- if(!player||!playing||document.hidden||!visible)return;
- try{player.frame(now)}catch(err){playing=false;status("GENERATION ERROR");message(err?.message||String(err));return}
- if(now-last>800){last=now;$("fps").textContent=(player.stats.fps||0).toFixed(1)}
-}
-$("load").onclick=load;
-$("pause").onclick=()=>{if(!player)return;playing=!playing;player.last=null;$("pause").textContent=playing?"Pause":"Resume";status(playing?"LIVE NEURAL INFERENCE":"PAUSED")};
-$("seed").onclick=()=>{
- if(!player)return;
- const seed=Math.floor(Math.random()*1000000000);
- player.runner.load({...player.runner.preset,base_seed:seed});
- player.walk.key=null;player.clock.beats=0;player.redraw=true;controls();
- message("New random seed "+seed+".");
-};
-$("save").onclick=async()=>{
- if(!player)return;
- try{const blob=await player.picture(),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="ai-lab-"+Date.now()+".png";a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)}
- catch(err){message("PNG export failed: "+(err?.message||String(err)))}
-};
-$("full").onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $("stage").requestFullscreen()}catch(e){message(e.message)}};
-for(const id of ["speed","spread","hold","tempo"])$(id).oninput=()=>{$(id+"Value").textContent=id==="tempo"?$(id).value:Number($(id).value).toFixed(2);controls()};
-window.addEventListener("resize",fit);document.addEventListener("fullscreenchange",fit);
-new ResizeObserver(fit).observe($("stage"));
-new IntersectionObserver(([entry])=>{visible=entry?.isIntersecting??true},{threshold:0.01}).observe($("stage"));
-if(!navigator.gpu)message("WebGPU unavailable: use Chrome/Edge with hardware acceleration, on an HTTPS page.");
-</script>
+  <main class="page">
+    <h1>lab</h1>
+    <div class="artwork" id="stage">
+      <canvas id="art" aria-label="Continuously generated neural artwork"></canvas>
+      <p class="error" id="error" aria-hidden="true"></p>
+    </div>
+    <div class="sr-only" id="status" role="status" aria-live="polite">Loading neural artwork.</div>
+  </main>
+  <script type="module">
+    // Actual generative neural inference. The source is a pinned, vendored
+    // copy of ganlive; the model is an existing test model, not yet custom-trained.
+    import { gpu, Player, loadPlayable, HAND, HAND_PRIORITY } from "./vendor/ganlive/player.mjs";
+
+    const canvas = document.getElementById("art");
+    const stage = document.getElementById("stage");
+    const error = document.getElementById("error");
+    const status = document.getElementById("status");
+
+    // A URL parameter allows internal A/B testing without adding any interface.
+    // Default: photographic places / textures. ?model=faces tests portrait synthesis.
+    const models = {
+      places: {
+        name: "Amber",
+        base: "https://huggingface.co/gustavecortal/ganlive-amber/resolve/main/engine/"
+      },
+      faces: {
+        name: "FFHQ",
+        base: "https://huggingface.co/gustavecortal/ganlive-ffhq/resolve/main/engine/"
+      }
+    };
+    const selected = new URLSearchParams(location.search).get("model") === "faces"
+      ? models.faces : models.places;
+
+    let player, device, running = false;
+    let previousVisibility = false;
+
+    function fit() {
+      if (!player?.current) return;
+      const model = player.current;
+      const rect = stage.getBoundingClientRect();
+      const ratio = Math.min(
+        rect.width / model.width,
+        rect.height / model.height,
+        1
+      );
+      const w = Math.max(1, Math.floor(model.width * ratio));
+      const h = Math.max(1, Math.floor(model.height * ratio));
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.style.width = w + "px";
+      canvas.style.height = h + "px";
+      player.show(Math.max(1, Math.floor(w * dpr)), Math.max(1, Math.floor(h * dpr)));
+    }
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      if (!running || !player || document.hidden || !previousVisibility) return;
+      try {
+        player.frame(now);
+      } catch (e) {
+        running = false;
+        showError(e);
+      }
+    }
+
+    function showError(e) {
+      console.error("lab neural generation:", e);
+      status.textContent = "Neural artwork could not start.";
+      error.textContent = "This neural experiment needs WebGPU in a supported browser with hardware acceleration. " +
+        "Technical error: " + (e?.message || String(e));
+      error.setAttribute("aria-hidden", "false");
+      canvas.style.display = "none";
+    }
+
+    async function start() {
+      try {
+        if (!isSecureContext || !navigator.gpu) {
+          throw new Error("WebGPU unavailable. Use an HTTPS page in current Chrome or Edge.");
+        }
+        status.textContent = "Loading neural model weights.";
+        device = await gpu();
+        device.lost.then(info => {
+          if (running) {
+            running = false;
+            showError(new Error("GPU connection lost: " + (info.message || "unknown reason")));
+          }
+        });
+
+        const entry = await loadPlayable(device, selected.base, selected.name, {
+          onStage: step => { status.textContent = "Neural model: " + step; }
+        });
+
+        player = new Player(device, canvas, { fps: 60, bpm: 125 });
+        player.add(entry);
+        player.runner.hold(HAND, { speed: .65, spread: .72, hold: 0 }, HAND_PRIORITY);
+        fit();
+        running = true;
+        status.textContent = "Live neural artwork generating.";
+        requestAnimationFrame(frame);
+      } catch (e) {
+        showError(e);
+      }
+    }
+
+    new ResizeObserver(fit).observe(stage);
+    new IntersectionObserver(([entry]) => {
+      previousVisibility = entry?.isIntersecting ?? true;
+      if (player) player.last = null; // avoid a time jump when returning onscreen
+    }, { threshold: 0.01 }).observe(stage);
+    document.addEventListener("visibilitychange", () => { if (player) player.last = null; });
+    start();
+  </script>
 </body>
 </html>
