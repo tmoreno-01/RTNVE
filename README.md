@@ -1,8 +1,8 @@
-# AI LAB — living neural art experiments
+# AI LAB — living neural art research
 
 A standalone web playground for exploring **actual in-browser neural image generation**, working toward endlessly morphing, strange AnimateDiff V3-style artwork.
 
-The first experiment is an engineering test: real WebGPU inference with publicly available pretrained GANs (not a video or shader fake). It is **not yet a custom model trained on AnimateDiff frames**, nor does it recreate A1111.
+The currently deployed page is just a **single-image WebGPU inference baseline**. It is not a temporally connected artwork, and we aren't presenting it as one. The earlier tiled face collage was rejected and removed from the home page. The goal is a **single evolving neural scene** with meaningful transformations.
 
 ## Run it
 
@@ -29,3 +29,14 @@ The pretrained model weights are hosted by their respective authors. **Model lic
 ## Next research stage
 
 Curate frames from the original A1111 + AnimateDiff V3 renders; train a custom lightweight image generator on a sufficiently diverse dataset; test latent continuity and temporal feedback. A model that merely interpolates recorded images, or that collapses into repetitive morphs, does not meet the eventual art goal.
+
+## What we're building next
+
+Read [TEMPORAL_RESEARCH.md](TEMPORAL_RESEARCH.md) before implementing new experiments. The two active research avenues are (1) time-conditioned continuous video GANs such as StyleGAN-V and (2) one-step *image-conditioned* generative models trained on consecutive video frames. Neither is ready for browser production yet; do not claim otherwise.
+
+Local training resources:
+- [training/prepare_video_frames.py](training/prepare_video_frames.py) extracts ordered sequences from the user's A1111 videos.
+- [training/build_temporal_pairs.py](training/build_temporal_pairs.py) creates whole-frame earlier→later image pairs for a one-step conditional student.
+- [training/STYLEGAN_V_FIRST_TEST.md](training/STYLEGAN_V_FIRST_TEST.md) outlines the RTX 3090 pretrained temporal GAN evaluation.
+
+Only substitute the live Lab model when an actual browser-deployable learned video generator works and passes extended motion tests.
