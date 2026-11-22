@@ -1,4 +1,5 @@
 import {gpu,loadPlayable} from "./vendor/ganlive/player.mjs";
+import {screen} from "./vendor/ganlive/runner.mjs";
 const $=s=>document.getElementById(s);
 const MAX=15, BASE="https://huggingface.co/gustavecortal/ganlive-ffhq/resolve/main/engine/";
 const S={device:null,entry:null,context:null,atlas:null,pipeline:null,bind:null,buffer:null,slots:[],
@@ -29,7 +30,7 @@ async function renderer(){
  S.atlas=d.createTexture({size:[S.entry.width,S.entry.height,MAX*2],format:"rgba8unorm",
    usage:GPUTextureUsage.COPY_DST|GPUTextureUsage.COPY_SRC|GPUTextureUsage.TEXTURE_BINDING|GPUTextureUsage.RENDER_ATTACHMENT});
  S.buffer=d.createBuffer({size:16*(2+MAX),usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
- const module=d.createShaderModule({code:"\nstruct Params {\n  meta: vec4f,\n  fx: vec4f,\n  tiles: array<vec4f, 15>\n};\n@group(0) @binding(0) var faces: texture_2d_array<f32>;\n@group(0) @binding(1) var faceSampler: sampler;\n@group(0) @binding(2) var<uniform> cfg: Params;\nstruct Output { @builtin(position) pos: vec4f, @location(0) uv: vec2f };\n@vertex fn vertex(@builtin(vertex_index) i:u32) -> Output {\n  var p=array<vec2f,3>(vec2f(-1,-1),vec2f(3,-1),vec2f(-1,3));\n  var o:Output;\n  o.pos=vec4f(p[i],0,1);\n  o.uv=vec2f((p[i].x+1)*0.5, 1-(p[i].y+1)*0.5);\n  return o;\n}\nfn hash2(p:vec2f)->f32{return fract(sin(dot(p,vec2f(127.1,311.7)))*43758.5453);}\nfn noise(p:vec2f)->f32{\n  let a=floor(p);let f=fract(p);let v=f*f*(3-2*f);\n  return mix(mix(hash2(a),hash2(a+vec2f(1,0)),v.x),\n             mix(hash2(a+vec2f(0,1)),hash2(a+vec2f(1,1)),v.x),v.y);\n}\n@fragment fn fragment(f:Output)->@location(0) vec4f {\n  let cols=u32(cfg.meta.x);let rows=u32(cfg.meta.y);\n  let global=clamp(f.uv,vec2f(0),vec2f(0.99999));\n  let col=min(cols-1,u32(floor(global.x*f32(cols))));\n  let row=min(rows-1,u32(floor(global.y*f32(rows))));\n  let id=min(14u,row*cols+col);\n  let info=cfg.tiles[id]; // morph, isGenerated, unique seed, unused\n  if(info.y<0.5){return vec4f(0.978,0.978,0.973,1);}\n  let t=cfg.fx.x;let chaos=cfg.fx.y;let organic=cfg.fx.z;\n  let p=fract(global*vec2f(f32(cols),f32(rows)));\n  let n=noise(p*3.8+vec2f(cos(t*.22+info.z),sin(t*.16+info.z))*1.3);\n  let n2=noise(p*11.0+vec2f(t*.10,-t*.13)+info.z);\n  let displacement=(.002+chaos*.027);\n  let flow=vec2f(sin(p.y*13.0+n*7.0+t*.65+info.z),\n                 cos(p.x*12.0+n2*8.0-t*.47+info.z))*displacement;\n  let phase=clamp(info.x,0.,1.);\n  let aUV=clamp(p+flow*(1-phase),vec2f(.002),vec2f(.998));\n  let bUV=clamp(p-flow*phase,vec2f(.002),vec2f(.998));\n  let a=textureSampleLevel(faces,faceSampler,aUV,i32(id*2u),0.0).rgb;\n  let b=textureSampleLevel(faces,faceSampler,bUV,i32(id*2u+1u),0.0).rgb;\n  let region=(n*.7+n2*.3-.5)*organic*.75;\n  let factor=smoothstep(0.,1.,clamp(phase+region,0.,1.));\n  return vec4f(mix(a,b,factor),1);\n}\n"});
+ const module=d.createShaderModule({code:"\nstruct Params {\n  layoutInfo: vec4f,\n  fx: vec4f,\n  tiles: array<vec4f, 15>\n};\n@group(0) @binding(0) var faces: texture_2d_array<f32>;\n@group(0) @binding(1) var faceSampler: sampler;\n@group(0) @binding(2) var<uniform> cfg: Params;\nstruct Output { @builtin(position) pos: vec4f, @location(0) uv: vec2f };\n@vertex fn vertex(@builtin(vertex_index) i:u32) -> Output {\n  var p=array<vec2f,3>(vec2f(-1,-1),vec2f(3,-1),vec2f(-1,3));\n  var o:Output;\n  o.pos=vec4f(p[i],0,1);\n  o.uv=vec2f((p[i].x+1)*0.5, 1-(p[i].y+1)*0.5);\n  return o;\n}\nfn hash2(p:vec2f)->f32{return fract(sin(dot(p,vec2f(127.1,311.7)))*43758.5453);}\nfn noise(p:vec2f)->f32{\n  let a=floor(p);let f=fract(p);let v=f*f*(3-2*f);\n  return mix(mix(hash2(a),hash2(a+vec2f(1,0)),v.x),\n             mix(hash2(a+vec2f(0,1)),hash2(a+vec2f(1,1)),v.x),v.y);\n}\n@fragment fn fragment(f:Output)->@location(0) vec4f {\n  let cols=u32(cfg.layoutInfo.x);let rows=u32(cfg.layoutInfo.y);\n  let global=clamp(f.uv,vec2f(0),vec2f(0.99999));\n  let col=min(cols-1,u32(floor(global.x*f32(cols))));\n  let row=min(rows-1,u32(floor(global.y*f32(rows))));\n  let id=min(14u,row*cols+col);\n  let info=cfg.tiles[id]; // morph, isGenerated, unique seed, unused\n  if(info.y<0.5){return vec4f(0.978,0.978,0.973,1);}\n  let t=cfg.fx.x;let chaos=cfg.fx.y;let organic=cfg.fx.z;\n  let p=fract(global*vec2f(f32(cols),f32(rows)));\n  let n=noise(p*3.8+vec2f(cos(t*.22+info.z),sin(t*.16+info.z))*1.3);\n  let n2=noise(p*11.0+vec2f(t*.10,-t*.13)+info.z);\n  let displacement=(.002+chaos*.027);\n  let flow=vec2f(sin(p.y*13.0+n*7.0+t*.65+info.z),\n                 cos(p.x*12.0+n2*8.0-t*.47+info.z))*displacement;\n  let phase=clamp(info.x,0.,1.);\n  let aUV=clamp(p+flow*(1-phase),vec2f(.002),vec2f(.998));\n  let bUV=clamp(p-flow*phase,vec2f(.002),vec2f(.998));\n  let a=textureSampleLevel(faces,faceSampler,aUV,i32(id*2u),0.0).rgb;\n  let b=textureSampleLevel(faces,faceSampler,bUV,i32(id*2u+1u),0.0).rgb;\n  let region=(n*.7+n2*.3-.5)*organic*.75;\n  let factor=smoothstep(0.,1.,clamp(phase+region,0.,1.));\n  return vec4f(mix(a,b,factor),1);\n}\n"});
  const compilation=await module.getCompilationInfo();
  const shaderErrors=compilation.messages.filter(m=>m.type==="error");
  if(shaderErrors.length)throw new Error("Crowd shader: "+shaderErrors.map(m=>m.message).join("; ").slice(0,500));
@@ -71,7 +72,7 @@ async function generate(now){
       // The generator's output buffer is an internal neural format.
       // Reuse ganlive's own proven screen shader to convert it to RGB,
       // rendering directly into the correct array layer.
-      S.entry.onto.draw(encoder,{
+      S.facePresenter.draw(encoder,{
         width:S.entry.width,
         height:S.entry.height,
         createView:()=>S.atlas.createView({
@@ -134,6 +135,8 @@ async function start(){
    onProgress:bytes=>setMessage("Loading neural model: "+Math.round(bytes/1048576)+" MB")
   });
   if(S.device.limits.maxTextureArrayLayers<MAX*2)throw new Error("GPU cannot store the required face layers.");
+  // The atlas stores rgba8unorm, which may differ from the browser canvas format.
+  S.facePresenter=screen(S.device,S.entry.model,"rgba8unorm");
   await renderer();
   S.slots=freshSlots();selectCount();
   S.running=true;C.seed.disabled=false;C.pause.disabled=false;C.save.disabled=false;
