@@ -1,4 +1,8 @@
-# AI LAB — living neural art research
+# Real-Time Neural Video Engine (RTNVE)
+
+**LifeAfterLogic — neural video generation R&D.**
+
+AI Lab is the browser-based experiment playground for RTNVE.
 
 A standalone web playground for exploring **actual in-browser neural image generation**, working toward endlessly morphing, strange AnimateDiff V3-style artwork.
 
