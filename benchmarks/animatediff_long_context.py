@@ -31,6 +31,7 @@ from pathlib import Path
 RTNVE_CONTEXT_PATCH = "2026-11-23-cfg-window-v2"
 
 from animatediff_v3 import prepare_model
+from prompt_travel import build_prompt_plan, encode_frame_conditioning
 
 CITY_PROMPT = (
     "strange looking people, cars driving,( High angle view of people walking "
@@ -129,8 +130,9 @@ class SlidingContextController:
     a different algorithm).
     """
 
-    def __init__(self, unet, frames: int, window: int, overlap: int, stride: int, loop: str):
+    def __init__(self, unet, frames: int, window: int, overlap: int, stride: int, loop: str, frame_conditioning=None):
         self.original_forward = unet.forward
+        self.frame_conditioning = frame_conditioning
         self.frames = frames
         self.window = window
         self.overlap = overlap
@@ -164,7 +166,11 @@ class SlidingContextController:
                 "Expected conditioning as keyword args. Diffusers pipeline API changed; "
                 "update the context wrapper before retrying."
             )
-        embeddings = kwargs.get("encoder_hidden_states")
+        embeddings = (
+            self.frame_conditioning
+            if self.frame_conditioning is not None
+            else kwargs.get("encoder_hidden_states")
+        )
         if not isinstance(embeddings, torch.Tensor) or embeddings.ndim != 3:
             raise RuntimeError("Expected a 3D encoder_hidden_states tensor from Diffusers AnimateDiff.")
         expected = sample.shape[0] * self.frames
@@ -225,6 +231,11 @@ def parse_args():
     p.add_argument("--guidance", type=float, default=6.0)
     p.add_argument("--seed", type=int, default=611)
     p.add_argument("--fps", type=int, default=10)
+    p.add_argument("--prompt-travel", action="store_true", help="Experimental changing CLIP conditioning per frame, no image crossfade.")
+    p.add_argument("--travel-seed", type=int, default=9191)
+    p.add_argument("--travel-min", type=int, default=50, help="Minimum frames between semantic prompt changes.")
+    p.add_argument("--travel-max", type=int, default=200, help="Maximum frames between semantic prompt changes.")
+    p.add_argument("--travel-transition", type=int, default=16, help="Frames blending between CLIP prompt embeddings.")
     p.add_argument("--out", type=Path, default=Path("benchmarks/results/animatediff-context"))
     return p.parse_args()
 
@@ -268,8 +279,36 @@ def main():
     # Shared model loader supports a.vae_slicing; set it explicitly here.
     a.vae_slicing = True
     pipe = prepare_model(a)
+    travel_plan = None
+    frame_conditioning = None
+    if a.prompt_travel:
+        # A deterministic plan changes text embeddings but NEVER blends image frames.
+        # In the causal student this small state machine will run continuously,
+        # with encoded prompts cached on GPU. This offline teacher is just a test.
+        travel_plan = build_prompt_plan(
+            frames=a.frames, seed=a.travel_seed, first_prompt=prompt,
+            min_interval=a.travel_min, max_interval=a.travel_max,
+            transition_frames=a.travel_transition,
+        )
+        for seg in travel_plan["segments"]:
+            print(
+                f"PROMPT TRAVEL frames {seg['start']}-{seg['end_exclusive'] - 1}: "
+                f"{travel_plan['prompts'][seg['prompt_id']]}"
+            )
+        frame_conditioning = encode_frame_conditioning(pipe, travel_plan, a.negative)
+        expected = 2 * a.frames
+        if frame_conditioning.shape[0] != expected:
+            raise RuntimeError(
+                f"Prompt travel produced {frame_conditioning.shape[0]} conditionings "
+                f"but CFG expects {expected}"
+            )
+        print(
+            f"TRAVEL ACTIVE: {len(travel_plan['prompts'])} prompt states; "
+            f"changing semantic text conditioning in the SAME evolving latent video."
+        )
     control = SlidingContextController(
-        pipe.unet, a.frames, a.window, a.overlap, a.stride, a.loop
+        pipe.unet, a.frames, a.window, a.overlap, a.stride, a.loop,
+        frame_conditioning=frame_conditioning,
     )
     orig = pipe.unet.forward
     torch.cuda.synchronize()
@@ -297,10 +336,17 @@ def main():
     finally:
         pipe.unet.forward = orig
 
-    vid = a.out / (
+    stem = (
         f"context_{a.preset}_{a.width}x{a.height}_{a.frames}f_"
-        f"{a.steps}s_seed{a.seed}_w{a.window}_o{a.overlap}.mp4"
+        f"{a.steps}s_seed{a.seed}_w{a.window}_o{a.overlap}"
+        + (f"_travel_seed{a.travel_seed}" if a.prompt_travel else "_static")
     )
+    vid = a.out / f"{stem}.mp4"
+    if travel_plan is not None:
+        plan_file = a.out / f"{stem}_plan.json"
+        with plan_file.open("w", encoding="utf-8") as f:
+            json.dump(travel_plan, f, indent=2)
+        print("Saved exact deterministic prompt travel plan:", plan_file)
     print("Encoding MP4:", vid)
     imageio.mimsave(
         str(vid), output.frames[0], fps=a.fps, codec="libx264",
@@ -323,6 +369,10 @@ def main():
         "context_overlap": a.overlap,
         "context_stride": a.stride,
         "context_loop": a.loop,
+        "prompt_travel": a.prompt_travel,
+        "prompt_travel_seed": a.travel_seed if a.prompt_travel else None,
+        "prompt_travel_plan": str(plan_file) if travel_plan else None,
+        "prompt_travel_prompts": travel_plan["prompts"] if travel_plan else None,
         "windows_per_step": len(windows),
         "unet_forward_calls": control.total_unet_calls,
         "full_pipeline_seconds": round(seconds, 3),
@@ -333,9 +383,9 @@ def main():
         "video": str(vid),
         "warning": "Not a real-time/streaming result; approximate A1111 parity only",
     }
-    with (a.out / "temporal_results.json").open("w", encoding="utf-8") as f:
+    with (a.out / f"{stem}_results.json").open("w", encoding="utf-8") as f:
         json.dump(row, f, indent=2)
-    with (a.out / "temporal_results.csv").open("w", newline="", encoding="utf-8") as f:
+    with (a.out / f"{stem}_results.csv").open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(row))
         writer.writeheader()
         writer.writerow(row)
@@ -346,6 +396,7 @@ def main():
         f" {control.total_unet_calls} total context forward calls."
     )
     print("Output:", vid)
+    print("Results:", a.out / f"{stem}_results.json")
     print("Review changes throughout whole clip. This is a fidelity test, not real-time playback.")
 
 
