@@ -13,6 +13,24 @@ The ultimate goal is a live AI-generated visual world for concerts, museums, ins
 
 We don't label crossfades, image warps, tiled faces or video playback as neural video generation.
 
+## New: 100-frame A1111-style temporal context test (experimental)
+
+The 16-frame RTX 3090 benchmark worked but produces almost static shots. In contrast, the two uploaded original A1111 clips contain 100 frames at 10 FPS with substantial changes across the entire scene.
+
+The A1111 screenshot shows: **20 steps, CFG 5, seed 611, 100 frames, 10 FPS, portrait orientation, context batch 13, stride 1, overlap 6, closed loop R+P**. These screenshot settings are a reference and are not guaranteed to be the precise settings of both old MP4s.
+
+The new **benchmarks/animatediff_long_context.py** processes a single global latent video. During every diffusion denoising step it takes moving, overlapping 13-frame context windows, runs AnimateDiff on them, and merges predictions back into the *same latent video*. No separate short videos, shader movement, or crossfade stitching.
+
+**How to run:** Update the local repo (the old ZIP does not update itself), then double-click **03_BENCHMARK_TEMPORAL.bat**. It calls **scripts/03_Run_Temporal.ps1**, reuses the already installed .venv, and reads the original local checkpoint and V3 motion module. No Python reinstallation required.
+
+Choose your NYC/CCTV prompt or the apartment-window screenshot prompt; for a first full-length comparison use 100 frames at 360x640, 20 steps, CFG 5, seed 611, context 13, overlap 6. Only move to 512x896 and eventually 720x1280 if motion fidelity improves. This is a significantly heavier offline test, not real-time.
+
+Outputs: MP4 and temporal_results.json under **benchmarks/results/animatediff-context/**, excluded from GitHub commits.
+
+**Known differences to A1111:** Weighted prompt interpretation, full sampler/noise parity, prompt scheduling and LoRAs are not yet guaranteed identical. The screenshot LoRA names were deliberately not applied because their compatibility with V3 was unverified.
+
+**Pass criterion:** sustained, organic, temporally connected restructuring throughout the scene. If it remains static, investigate motion checkpoint conversion and A1111 parity before distilling or training a faster model.
+
 ## Start here — Windows RTX 3090
 
 **The original Automatic1111 installations remain untouched.** The benchmarks use their *existing* model files in a separate local Python environment.
