@@ -91,7 +91,7 @@ The final work should not rely on someone typing a prompt every few seconds. The
 
 ### Working toward this
 
-**Teacher experiment, CPU schedule implemented:** `benchmarks/prompt_travel.py` builds seeded prompt schedules from thousands of grammatical combinations, and constructs interpolated CLIP embeddings per frame. `benchmarks/animatediff_long_context.py --prompt-travel` injects them into the *same* global latent sequence. That is an **offline test only**, not causal streaming or evidence that it looks good yet. The teacher's current R+P context can pull the last frames towards the opening frame; production continuous generation must remove this forced-loop behaviour. Next gate: evaluate 16/8 vs13/6 and test 48-frame rapid semantic changes, then 100-frame travel if quality justifies the cost.
+**Teacher experiment, CPU schedule implemented:** `benchmarks/prompt_travel.py` builds seeded prompt schedules from thousands of grammatical combinations, and constructs interpolated CLIP embeddings per frame. `benchmarks/animatediff_long_context.py --prompt-travel` injects them into the *same* global latent sequence. That is an **offline test only**, not causal streaming or evidence that it looks good yet. Initial R+P experiments pulled a static-prompt scene back toward its opening frame. Current code defaults to **N (no cyclic final-to-first context)**, context **16 / overlap 8**, and **28-frame gradual semantic changes**; these revised settings need a new GPU visual check. At 48 frames, the experimental schedule deliberately has just one slow transition, rather than three abrupt changes. An N-mode finite sequence is still not an infinite causal video generator. Next gate: compare the N-mode clip, then choose whether a 100-frame teacher test is artistically worthwhile.
 
 **Browser feasibility test:** your desktop browser reports WebGPU on NVIDIA Ampere with `shaderF16:true` and max individual storage buffer binding 128 MiB, max buffer 256 MiB. This is promising for native FP16 inference, but these are **per-buffer constraints, not total available GPU memory**. No WebGPU neural student has been benchmarked yet.
 
@@ -141,3 +141,6 @@ At 4 steps quality was badly degraded; all of those numbers are from **offline 1
 We choose **A1111-quality teacher + compact causal neural student + WebGPU runtime** as the main research direction. Landscape and CFG 6 are the default for current video fidelity tests.
 
 Alternative research tracks (AnimateLCM, small one-step image-to-image diffusion, Causal Forcing) remain *benchmarks/inputs* to our architecture rather than assumed drop-in solutions.
+
+
+**High-resolution details:** [HIGH_RESOLUTION_AND_AUTONOMY.md](HIGH_RESOLUTION_AND_AUTONOMY.md). Do not confuse native 720p neural generation with a convincing 720p displayed output from temporally coherent neural upscaling; both remain research options. Full 1080p generation is not a near-term CUDA/WebGPU target.
