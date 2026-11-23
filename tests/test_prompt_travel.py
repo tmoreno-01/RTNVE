@@ -32,6 +32,32 @@ class PromptTravelTests(unittest.TestCase):
             self.assertLess(record["from_prompt"], len(plan["prompts"]))
             self.assertLess(record["to_prompt"], len(plan["prompts"]))
 
+    def test_48_frame_preview_transitions_gradually_over_28_frames(self):
+        plan = build_prompt_plan(
+            frames=48, seed=9191, first_prompt="A busy city",
+            min_interval=40, max_interval=40, transition_frames=28
+        )
+        self.assertEqual(len(plan["prompts"]), 2)
+        self.assertEqual(plan["segments"][0]["start"], 0)
+        self.assertEqual(plan["segments"][0]["transition_start"], 12)
+        self.assertEqual(plan["segments"][0]["end_exclusive"], 40)
+        self.assertEqual([f["alpha"] for f in plan["frame_schedule"][:12]], [0.0] * 12)
+        values = [f["alpha"] for f in plan["frame_schedule"][12:40]]
+        self.assertEqual(len(values), 28)
+        self.assertEqual(values[-1], 1.0)
+        self.assertTrue(all(values[i] < values[i+1] for i in range(27)))
+        self.assertTrue(all(f["from_prompt"] == 1 and f["alpha"] == 0
+                            for f in plan["frame_schedule"][40:]))
+
+    def test_100_frame_preview_slow_semantic_change(self):
+        plan = build_prompt_plan(
+            frames=100, seed=9191, first_prompt="A city",
+            min_interval=50, max_interval=50, transition_frames=28
+        )
+        self.assertEqual(plan["segments"][0]["transition_start"], 22)
+        self.assertEqual(plan["segments"][0]["end_exclusive"], 50)
+        self.assertEqual(len(plan["prompts"]), 2)
+
     def test_midpoint_easing_and_endpoints(self):
         self.assertGreater(transition_weight(0, 8), 0)
         self.assertLess(transition_weight(0, 8), 1)
