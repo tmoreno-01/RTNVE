@@ -59,13 +59,16 @@ def uniform_contexts(
     batch_size: int,
     stride: int,
     overlap: int,
-    closed_loop: str = "R+P",
+    closed_loop: str = "N",
 ) -> list[list[int]]:
-    """Replicate A1111's uniform context indices for R-P, R+P or A.
+    """Build AnimateDiff temporal windows, including non-looping N mode.
 
-    R+P in the extension primarily affects prompt continuity; its context
-    positions use the same end-boundary rule as R-P. Closed-loop A differs.
-    'N' has special behavior and is intentionally unsupported here.
+    R+P and R-P use the extension's cyclic context scheme; A forces closure.
+    N follows the extension's boundary handling: when a window would cross
+    the final->first frame boundary it instead selects first/last NON-wrapping
+    windows. A final coverage repair prevents a known edge case where the
+    upstream N schedule leaves early frames uncovered at some denoising steps.
+    This is an offline finite-video algorithm, NOT an infinite causal engine.
     """
     if frame_count < 1 or batch_size < 1 or batch_size > frame_count:
         raise ValueError("frame_count must be >= batch_size >= 1")
@@ -73,8 +76,10 @@ def uniform_contexts(
         raise ValueError("overlap must be in [0, batch_size)")
     if stride < 1:
         raise ValueError("stride must be >= 1")
-    if closed_loop not in ("R-P", "R+P", "A"):
-        raise ValueError("Use R-P, R+P or A; A1111 'N' uses a separate window rule")
+    if closed_loop not in ("N", "R-P", "R+P", "A"):
+        raise ValueError("Use N (no loop), R-P, R+P or A")
+    if closed_loop == "N" and stride != 1:
+        raise ValueError("AnimateDiff N (absolutely no loop) requires stride 1")
 
     if frame_count <= batch_size:
         return [list(range(frame_count))]
@@ -90,10 +95,53 @@ def uniform_contexts(
         increment = batch_size * context_step - overlap
         if increment <= 0:
             raise ValueError("context step minus overlap must be positive")
+        both_close_loop = False
         for j in range(begin, end, increment):
-            windows.append(
-                [(j + k * context_step) % frame_count for k in range(batch_size)]
-            )
+            context = [(j + k * context_step) % frame_count for k in range(batch_size)]
+            if closed_loop == "N" and context_step == 1:
+                # Matches animatediff_infv2v.py's N boundary branch.
+                # Never let a temporal attention window connect the last
+                # frame to the first: it would make the video try to loop.
+                split_at = next(
+                    (k for k in range(1, len(context)) if context[k] < context[k - 1]),
+                    None
+                )
+                first_context = list(range(batch_size))
+                last_context = list(range(frame_count - batch_size, frame_count))
+                if split_at is None:
+                    windows.append(context)
+                elif both_close_loop:
+                    both_close_loop = False
+                    windows.append(first_context)
+                elif split_at < batch_size - overlap:
+                    windows.append(last_context)
+                    windows.append(first_context)
+                else:
+                    both_close_loop = True
+                    windows.append(last_context)
+            else:
+                windows.append(context)
+
+    # The extension's N algorithm can miss a few boundary frames when the
+    # ordered-halving phase shifts. Unlike A1111's zero-initialized prediction,
+    # our torch.empty_like buffer MUST never have unwritten frames.
+    # Repair using non-wrapping boundary contexts, never cyclic windows.
+    if closed_loop == "N":
+        covered = {f for context in windows for f in context}
+        missing = set(range(frame_count)) - covered
+        if missing:
+            for edge_context in (
+                list(range(batch_size)),
+                list(range(frame_count - batch_size, frame_count)),
+            ):
+                if missing.intersection(edge_context):
+                    windows.append(edge_context)
+                    missing.difference_update(edge_context)
+            for frame in sorted(missing):
+                start = max(0, min(frame - batch_size // 2, frame_count - batch_size))
+                edge_context = list(range(start, start + batch_size))
+                if edge_context not in windows:
+                    windows.append(edge_context)
 
     # Detect mistakes in the window schedule before a costly GPU generation.
     seen = set(i for window in windows for i in window)
@@ -223,10 +271,10 @@ def parse_args():
     p.add_argument("--frames", type=int, default=100)
     p.add_argument("--width", type=int, default=640)
     p.add_argument("--height", type=int, default=360)
-    p.add_argument("--window", type=int, default=13)
-    p.add_argument("--overlap", type=int, default=6)
+    p.add_argument("--window", type=int, default=16)
+    p.add_argument("--overlap", type=int, default=8)
     p.add_argument("--stride", type=int, default=1)
-    p.add_argument("--loop", choices=["R-P", "R+P", "A"], default="R+P")
+    p.add_argument("--loop", choices=["N", "R-P", "R+P", "A"], default="N")
     p.add_argument("--steps", type=int, default=20)
     p.add_argument("--guidance", type=float, default=6.0)
     p.add_argument("--seed", type=int, default=611)
@@ -339,6 +387,7 @@ def main():
     stem = (
         f"context_{a.preset}_{a.width}x{a.height}_{a.frames}f_"
         f"{a.steps}s_seed{a.seed}_w{a.window}_o{a.overlap}"
+        + f"_loop{a.loop}"
         + (f"_travel_seed{a.travel_seed}" if a.prompt_travel else "_static")
     )
     vid = a.out / f"{stem}.mp4"
