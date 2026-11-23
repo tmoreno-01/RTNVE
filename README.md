@@ -13,6 +13,21 @@ The ultimate goal is a live AI-generated visual world for concerts, museums, ins
 
 We don't label crossfades, image warps, tiled faces or video playback as neural video generation.
 
+## First successful long-context result and prompt-travel experiment
+
+On 2026-11-23 the RTX 3090 produced an actual 48-frame, **640×360 landscape** AnimateDiff V3 test at **20 steps, CFG 6**, context **13 / overlap 6**. Results: **79.15 seconds end to end**, **0.6064 batch-generated FPS** and **5.083 GiB** peak CUDA allocation. The clip shows substantial architectural/vehicle/vegetation metamorphosis, far beyond the earlier single-window test, but still visibly loops towards the opening scene. These are OFFLINE numbers, not real-time WebGPU inference.
+
+**Now available for experiment (not yet executed on RTX 3090):**
+
+- **Context comparison:** run the existing `03_BENCHMARK_TEMPORAL.bat`, select **16-frame context / overlap 8**, same scene, same seed, frames and settings. Visually compare against 13/6; smoother movement is a hypothesis, not yet proven.
+- **Prompt travel:** the launcher can optionally change the underlying CLIP **text conditioning** at randomly scheduled frames inside one global AnimateDiff denoising process, without crossfading finished pictures. The new `benchmarks/prompt_travel.py` samples surprising scene/actor/transformation combinations from a deterministic seed, then smoothly changes conditioning across each transition.
+- The intended long-run prompt dwell choices are **50, 100 or 200 frames**, randomly. The 48-frame experiment uses **12–16-frame intervals** so you can see multiple transitions in a short test; the 100-frame preview uses one change after 50 frames. This is a temporary test schedule, not the desired live cadence.
+- Each test produces a uniquely named MP4 and matching `*_results.json`, `*_results.csv`, and (for travel) `*_plan.json`. Local outputs remain excluded from GitHub.
+
+**Keeping a working local ZIP updated:** The new `00_UPDATE_RTNVE.bat` fetches the benchmark scripts, prompt-travel module, and PowerShell launcher; no need to reinstall PyTorch or modify Automatic1111. When the updater itself changes, replace `scripts/00_Update.ps1` from GitHub once.
+
+Prompt travel currently works only as an *experimental offline teacher conditioning mechanism*. It is **not proof of lifelong causal memory**. The real-time website needs a substantially smaller, temporally trained model that preserves latent state while introducing new semantic instructions, with the text embeddings cached and reused on the visitor's GPU.
+
 ## Browser engine plan
 
 **[Read the technical bridge from A1111 teacher → small causal student → WebGPU website engine](BROWSER_ENGINE_ROADMAP.md)**.
