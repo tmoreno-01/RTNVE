@@ -69,7 +69,8 @@ if (-not (Test-Path $pythonExe)) {
         Write-Host ""
         Write-Host "Python 3.11 was not found. Your RTX 3090 and A1111 are not the problem." -ForegroundColor Yellow
         Write-Host "Install Python 3.11 for Windows (64-bit) from:"
-        Write-Host "https://www.python.org/downloads/windows/"
+        Write-Host "https://www.python.org/downloads/release/python-3119/"
+        Write-Host "Choose the Windows installer (64-bit), not the embeddable package."
         Write-Host "In the installer, enable 'Add python.exe to PATH' if offered."
         Write-Host "Then run 01_SETUP_WINDOWS.bat again. No need to reinstall A1111."
         throw "Python 3.11 missing; no packages have been installed."
