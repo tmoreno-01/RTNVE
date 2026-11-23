@@ -5,7 +5,7 @@ This is a real neural inference benchmark, **not a browser or realtime-streaming
 It uses your original SD1.5 checkpoint plus V3 motion-module .ckpt
 in an independent Diffusers environment, without changing the A1111 setup.
 It measures end-to-end time, actual generated FPS, and peak GPU memory
-for 24, 12, 8 and 4 denoising steps. It saves real clips for comparison.
+for 20, 12, 8 and 4 denoising steps. It saves real clips for comparison.
 
 Important:
 - A1111's sliding context isn't reproduced; the pipeline may not render
@@ -36,7 +36,7 @@ CUDA must be True. Do NOT install this environment in A1111's venv.
 
 Replace the placeholders with your actual local checkpoint and motion file:
 
-    python benchmarks/animatediff_v3.py --checkpoint "Z:\path\to\CyberRealistic_V9_FP32.safetensors" --motion "Z:\path\to\v3_sd15_mm.ckpt" --width 512 --height 288 --frames 16 --steps 24 12 8 4 --warmup
+    python benchmarks/animatediff_v3.py --checkpoint "Z:\path\to\CyberRealistic_V9_FP32.safetensors" --motion "Z:\path\to\v3_sd15_mm.ckpt" --width 512 --height 288 --frames 16 --steps 20 12 8 4 --warmup
 
 To try higher resolution, use width 768 height 432. For 720p, try width
 1280 height 720 AFTER measuring VRAM. This may OOM on a 24GB RTX3090,
