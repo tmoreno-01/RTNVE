@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RTNVE — WebGPU capability check</title>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:#131313;font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+header{padding:22px 28px;border-bottom:1px solid #e5e5e5;display:flex;justify-content:space-between;align-items:center;gap:12px}
+small{color:#666}
+main{max-width:880px;padding:34px 26px 60px;margin:auto}
+h1{font-size:24px;font-weight:600;letter-spacing:-.8px;margin:0 0 14px}
+p{font:14px/1.55 system-ui,sans-serif;color:#4e4e4e}
+button{font:inherit;background:#111;color:#fff;border:1px solid #111;padding:10px 14px;cursor:pointer}
+button.secondary{background:#fff;color:#111}
+button:disabled{opacity:.4;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin:20px 0}
+.tile{border:1px solid #dedede;padding:15px;min-height:82px}
+.tile .key{font-size:12px;color:#666}
+.tile .val{display:block;font-size:16px;margin-top:12px;word-break:break-word}
+pre{background:#f6f6f6;padding:18px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12px/1.5 inherit}
+a{color:inherit;text-underline-offset:3px}
+@media(max-width:520px){header{padding:16px}main{padding:24px 16px}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<header><strong>RTNVE <small>/ browser diagnostics</small></strong><small>LifeAfterLogic research</small></header>
+<main>
+<h1>Can this browser run our future neural engine?</h1>
+<p>This check only identifies WebGPU support and relevant device limits. It does <strong>not</strong> run AnimateDiff, download neural weights, benchmark inference speed, or claim real-time video. Everything runs locally; nothing is submitted to a server.</p>
+<div class="grid">
+  <div class="tile"><span class="key">WebGPU</span><span class="val" id="webgpu">Checking…</span></div>
+  <div class="tile"><span class="key">Adapter</span><span class="val" id="adapter">—</span></div>
+  <div class="tile"><span class="key">Float16 shader support</span><span class="val" id="f16">—</span></div>
+  <div class="tile"><span class="key">Storage buffer binding limit</span><span class="val" id="storage">—</span></div>
+  <div class="tile"><span class="key">Maximum buffer size</span><span class="val" id="buffer">—</span></div>
+  <div class="tile"><span class="key">Inference FPS</span><span class="val">Not tested — no student model yet</span></div>
+</div>
+<div class="actions">
+  <button id="rerun" type="button">Rerun check</button>
+  <button id="copy" class="secondary" type="button" disabled>Copy diagnostics</button>
+  <a href="../" style="align-self:center;margin-left:auto">Back to RTNVE Lab</a>
+</div>
+<pre id="log" aria-live="polite">Starting…</pre>
+<p>Once we train a small causal model, this page's next job will be to load real exported weights through ONNX Runtime WebGPU and measure <em>neural</em> generation FPS. The model is not ready yet.</p>
+</main>
+<script type="module">
+const $ = id => document.getElementById(id);
+let report = {project:"RTNVE",check:"browser capability only"};
+const size = bytes => Number.isFinite(bytes) ? (bytes / 1048576).toFixed(1)+" MiB" : "Unknown";
+function val(id, value){$(id).textContent = String(value)}
+function out(message){$("log").textContent = message}
+async function run(){
+  $("rerun").disabled=true;$("copy").disabled=true;
+  report={project:"RTNVE",check:"browser capability only",time:new Date().toISOString(),secureContext:isSecureContext};
+  val("webgpu","Checking…");val("adapter","—");val("f16","—");val("storage","—");val("buffer","—");
+  try {
+    if (!isSecureContext)throw Error("WebGPU requires HTTPS or localhost; this page is not a secure context.");
+    if (!navigator.gpu)throw Error("navigator.gpu unavailable in this browser. Try current Chrome or Edge on a supported GPU.");
+    const adapter=await navigator.gpu.requestAdapter({powerPreference:"high-performance"});
+    if (!adapter)throw Error("No WebGPU GPU adapter was returned.");
+    const device=await adapter.requestDevice();
+    const info=adapter.info||{};
+    report.webgpu=true;
+    report.vendor=info.vendor||"not exposed";
+    report.architecture=info.architecture||"not exposed";
+    report.device=info.device||"not exposed";
+    report.shaderF16=device.features.has("shader-f16");
+    report.maxStorageBufferBindingSize=device.limits.maxStorageBufferBindingSize;
+    report.maxBufferSize=device.limits.maxBufferSize;
+    val("webgpu","Available");
+    val("adapter",[report.vendor,report.architecture].filter(x=>x!=="not exposed").join(" / ")||"Name hidden by browser");
+    val("f16",report.shaderF16?"Yes":"No");
+    val("storage",size(report.maxStorageBufferBindingSize));
+    val("buffer",size(report.maxBufferSize));
+    out(JSON.stringify(report,null,2));
+    device.destroy();
+  }catch(error){
+    report.webgpu=false;report.error=error instanceof Error?error.message:String(error);
+    val("webgpu","Unavailable");out(JSON.stringify(report,null,2));
+  }finally{$("rerun").disabled=false;$("copy").disabled=false;}
+}
+$("rerun").addEventListener("click",run);
+$("copy").addEventListener("click",async()=>{
+ const message=JSON.stringify(report,null,2);
+ try{await navigator.clipboard.writeText(message);$("copy").textContent="Copied";setTimeout(()=>$("copy").textContent="Copy diagnostics",1200)}
+ catch{out(message+"\n\nClipboard blocked — select and copy the JSON above.");}
+});
+run();
+</script>
+</body>
+</html>
