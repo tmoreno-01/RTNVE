@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Python source syntax
-        run: python -m compileall -q benchmarks training
+        run: |
+          python -m compileall -q benchmarks training tests
+          python -m unittest discover -s tests -v
 
   windows-powershell-syntax:
     runs-on: windows-latest
@@ -21,7 +23,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($file in @('scripts/01_Setup.ps1', 'scripts/02_Run_Benchmark.ps1')) {
+          foreach ($file in @('scripts/01_Setup.ps1', 'scripts/02_Run_Benchmark.ps1', 'scripts/03_Run_Temporal.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile(
