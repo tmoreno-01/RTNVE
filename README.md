@@ -21,7 +21,7 @@ We don't label crossfades, image warps, tiled faces or video playback as neural 
 2. **Python 3.11 or 3.12 works.** The setup script detects an existing installation on PATH or in common Windows install folders (the `py` launcher is optional).
 3. Double-click **01_SETUP_WINDOWS.bat**. It creates a project-local .venv and installs a CUDA-enabled PyTorch build and Diffusers. CUDA 12.6 needs a compatible NVIDIA driver; select a suitable build from https://pytorch.org/get-started/locally/ if that fails.
 4. Double-click **02_BENCHMARK_V3.bat**. Choose your original CyberRealistic SD1.5 checkpoint and **v3_sd15_mm.ckpt** in the file pickers.
-5. Select **1 (512×288)** for the *initial compatibility and speed check*, NOT the production-resolution goal. The script generates 16 frames at 24, 12, 8 and 4 diffusion steps and measures true generation time and peak VRAM.
+5. Select **1 (512×288)** for the *initial compatibility and speed check*, NOT the production-resolution goal. The script generates 16 frames at 20, 12, 8 and 4 diffusion steps and measures true generation time and peak VRAM.
 6. Once the first test succeeds, repeat step 4 at **768×432** and then **1280×720** if GPU memory allows.
 7. Share the generated results.csv, results.json and a few test MP4s from benchmarks/results/animatediff-v3/ in the conversation so we can inspect quality and actual performance. **Do not upload your checkpoint or motion model.**
 
