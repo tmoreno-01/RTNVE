@@ -4,6 +4,16 @@
 
 The ultimate goal is a live AI-generated visual world for concerts, museums, installations and websites. One coherent evolving scene; genuine neural synthesis with temporally connected transformations, unexpected appearances and disappearances, never a stack of portrait tiles or a prerecorded MP4.
 
+## Current experiment — non-looping autonomous neural world
+
+**Current research defaults: landscape 640×360, 20 steps, CFG 6, context 16 / overlap 8, stride 1, closed-loop `N` (absolutely no loop), and autonomous prompt travel.** The next visual-quality test makes one semantic change gradually over **28 frames**, instead of three abrupt six-frame shifts. On a 100-frame test, it changes after the 50-frame segment with a 28-frame transition. This is still *offline AnimateDiff*, not the live browser engine.
+
+The original extension explains `N` as its only true non-loop setting; `A` instead aggressively forces the end to resemble the start. RTNVE fixes the upstream N schedule's occasional uncovered boundary frames. Existing 16/8 R+P tests are preserved under different filenames and metadata.
+
+**[Read the resolution and autonomy decisions](HIGH_RESOLUTION_AND_AUTONOMY.md)** — native neural generation, possible coherent upscaling to 720p/1080p, and autonomous evolution with minimal interface. We are **not** rewriting SD1.5's motion module for native 1080p before showing a quality/performance need.
+
+**Windows action:** run `00_UPDATE_RTNVE.bat` to synchronise the Python/PowerShell files (if the updater itself is outdated, update `scripts/00_Update.ps1` first), then run `03_BENCHMARK_TEMPORAL.bat`. The launcher now defaults to N, 16/8 and autonomous travel. Upload the generated MP4 and `*_results.json` to compare against the last successful 16/8 R+P version.
+
 ## Current status — research prototype, not a finished engine
 
 - **Working:** static GitHub-hosted WebGPU neural *image* generator used for initial browser capability checks (ganlive / pretrained GAN).
