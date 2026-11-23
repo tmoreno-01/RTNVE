@@ -213,8 +213,9 @@ def main():
     print("Not real time. This first test is about temporal fidelity.")
     print("NOTE: A1111 weighted prompt syntax and exact seed/sampler implementation may differ.")
 
+    # Shared model loader supports a.vae_slicing; set it explicitly here.
+    a.vae_slicing = True
     pipe = prepare_model(a)
-    pipe.enable_vae_slicing()
     control = SlidingContextController(
         pipe.unet, a.frames, a.window, a.overlap, a.stride, a.loop
     )
