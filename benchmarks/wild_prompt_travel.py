@@ -5,7 +5,7 @@ The video remains one global AnimateDiff latent video; CLIP embeddings are
 interpolated across neighbouring prompts, not rendered images crossfaded.
 
 Prompts deliberately mix unrelated subjects, places, materials, scales and
-actions. 60-140 frame dwell, 32-frame easing by default. The dwell simply
+actions. 60-140 frame dwell, randomized 20-60-frame easing. The dwell simply
 means the new subject gets a chance to exist before the next metamorphosis.
 """
 from __future__ import annotations
@@ -161,14 +161,25 @@ def make_plan(
     seed: int = 9191,
     min_interval: int = 60,
     max_interval: int = 140,
-    transition_frames: int = 32,
+    transition_min: int = 20,
+    transition_max: int = 60,
 ) -> dict:
+    """Build a continuous schedule with a DIFFERENT morph length each time.
+
+    Each semantic state lasts a random 60-140 frames. In its final 20-60
+    frames, positive CLIP embeddings morph gradually into the next state.
+    60-frame changes are only picked for segments long enough to leave
+    at least one frame fully under the old prompt. No hard scene cuts.
+    """
     if frames < 1 or frames > 10000:
         raise ValueError("frames must be 1..10000")
     if min_interval < 2 or max_interval < min_interval:
         raise ValueError("invalid duration bounds")
-    if not 1 <= transition_frames < min_interval:
-        raise ValueError("transition must be less than shortest duration")
+    if not 1 <= transition_min <= transition_max:
+        raise ValueError("invalid transition bounds")
+    if transition_min >= min_interval:
+        raise ValueError("shortest transition must fit within shortest interval")
+
     rng = random.Random(seed)
     prompts = []
     segments = []
@@ -187,38 +198,48 @@ def make_plan(
             "start": start, "end_exclusive": end,
             "prompt_id": current,
             "next_prompt_id": None,
-            "transition_start": end
+            "transition_start": end,
+            "transition_frames": 0,
         })
         start = end
+
     for i, segment in enumerate(segments):
-        next_id = i+1 if i+1 < len(prompts) else None
+        next_id = i + 1 if i + 1 < len(prompts) else None
         segment["next_prompt_id"] = next_id
-        segment["transition_start"] = (
-            segment["end_exclusive"]-transition_frames
-            if next_id is not None else segment["end_exclusive"]
-        )
+        if next_id is not None:
+            # The first segment might be only 60 frames; keep >=1 frame fully
+            # conditioned to its original subject before the new one arrives.
+            duration = segment["end_exclusive"] - segment["start"]
+            max_allowed = min(transition_max, duration - 1)
+            transition_frames = rng.randint(transition_min, max_allowed)
+            segment["transition_frames"] = transition_frames
+            segment["transition_start"] = segment["end_exclusive"] - transition_frames
+
         for frame in range(segment["start"], segment["end_exclusive"]):
+            fade = segment["transition_frames"]
             if next_id is None or frame < segment["transition_start"]:
                 alpha = 0.0
             else:
-                x = (frame - segment["transition_start"]+1)/transition_frames
-                alpha = x*x*(3-2*x)  # CLIP embedding smoothstep
+                x = (frame - segment["transition_start"] + 1) / fade
+                alpha = x * x * (3 - 2 * x)  # gradual CLIP conditioning, not an RGB fade
             timeline.append({
                 "frame": frame,
                 "from_prompt": i,
                 "to_prompt": i if next_id is None else next_id,
-                "alpha": round(alpha,7)
+                "alpha": round(alpha, 7)
             })
+
     assert len(timeline) == frames
     return {
-        "version": 1,
+        "version": 2,
         "generator": "RTNVE wild procedural conceptual prompts; no LoRAs",
         "seed": seed, "frames": frames,
         "min_interval": min_interval,
         "max_interval": max_interval,
-        "transition_frames": transition_frames,
+        "transition_min": transition_min,
+        "transition_max": transition_max,
         "prompts": prompts,
         "segments": segments,
         "frame_schedule": timeline,
-        "warning": "Interpolated neural TEXT conditioning, not RGB video crossfading."
+        "warning": "Gradually mixed neural TEXT conditioning, not image crossfades."
     }
