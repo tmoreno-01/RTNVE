@@ -4,6 +4,16 @@
 
 The ultimate goal is a live AI-generated visual world for concerts, museums, installations and websites. One coherent evolving scene; genuine neural synthesis with temporally connected transformations, unexpected appearances and disappearances, never a stack of portrait tiles or a prerecorded MP4.
 
+## Website and phone feasibility — zero GPU inference server
+
+**LifeAfterLogic's product requirement is an autonomous, genuinely neural evolving artwork on visitor GPUs, including supported phones, with no continuous rented GPU service.** This remains a research target; the successful 20-step AnimateDiff visuals are an artistic teacher, not yet a mobile-sized model.
+
+**[Read cost/mobile reality and acceptance gates](MOBILE_COST_AND_MODEL_GATES.md).**
+
+**New real PyTorch→ONNX→WebGPU portability probe:** `04_BUILD_WEBGPU_PROBE.bat` exports a tiny **untrained recurrent CNN** from your isolated Windows .venv. Open the resulting local ONNX model in the [WebGPU neural inference probe](https://tmoreno-01.github.io/RTNVE/webgpu-student-probe/) on your desktop (then optionally phone). The probe measures neural iterations/sec and GPU-resident feedback, **not art-quality video FPS**. It has no visual output; the model is deliberately random/untrained. Running it doesn't alter A1111 or require cloud inference.
+
+**Next genuine AI milestone:** train a significantly smaller recurrent neural student on a diverse collection of your best approved temporal metamorphosis clips, then compare visual quality and end-to-end WebGPU performance. Do not train a student on only two 48-frame samples expecting usable results.
+
 ## Current experiment — non-looping autonomous neural world
 
 **Current research defaults: landscape 640×360, 20 steps, CFG 6, context 16 / overlap 8, stride 1, closed-loop `N` (absolutely no loop), and autonomous prompt travel.** The next visual-quality test makes one semantic change gradually over **28 frames**, instead of three abrupt six-frame shifts. On a 100-frame test, it changes after the 50-frame segment with a 28-frame transition. This is still *offline AnimateDiff*, not the live browser engine.
