@@ -11,6 +11,14 @@ $experiment = Join-Path $root "benchmarks\animatediff_long_context.py"
 if (-not (Test-Path $experiment -PathType Leaf)) {
     throw "Missing animatediff_long_context.py. Download the updated RTNVE source."
 }
+# Fail BEFORE loading multi-GB models if an old ZIP/script is still in use.
+$requiredMarker = 'RTNVE_CONTEXT_PATCH = "2026-11-23-cfg-window-v2"'
+$code = Get-Content -LiteralPath $experiment -Raw -Encoding UTF8
+if (-not $code.Contains($requiredMarker)) {
+    throw "Outdated RTNVE temporal Python code detected. Run 00_UPDATE_RTNVE.bat to synchronize the fixes. No GPU test was started."
+}
+Write-Host "Source version OK: 2026-11-23-cfg-window-v2" -ForegroundColor Green
+
 $checkpoint = "Z:\ART\AI\2026\AI\SD\STABLE\stable-diffusion-webui\models\Stable-diffusion\cyberrealistic_final.safetensors"
 $motion = "Z:\ART\AI\2026\AI\SD\NEWTEST\sandboxnew\extensions\sd-webui-animatediff\model\v3_sd15_mm.ckpt"
 
