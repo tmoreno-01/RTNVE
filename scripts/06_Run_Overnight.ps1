@@ -23,7 +23,7 @@ New-Item -ItemType Directory -Force -Path $out | Out-Null
 Write-Host ""
 Write-Host "RTNVE OVERNIGHT: 1000 FRAMES AT 1280x720, 10 FPS" -ForegroundColor Cyan
 Write-Host "20 steps, CFG 6, context16 overlap8, N nonloop."
-Write-Host "Wild random prompts, irregular 60-140-frame dwell, 32-frame gradual morphs."
+Write-Host "Wild random prompts, irregular 60-140-frame dwell and 20-60-frame changing morph durations."
 Write-Host "One global latent video, no LoRA tags, no stitching or clips."
 Write-Host "Preflight tests 1280x720 VRAM. If OOM, script logs fallback 896x504."
 Write-Host "WARNING: experimental high-VRAM job, may be hours-long or may fail."
@@ -47,7 +47,7 @@ $argsList=@(
     "--fps", "10", "--steps", "20", "--guidance", "6", "--seed", "611",
     "--travel-seed", "9191",
     "--travel-min", "60", "--travel-max", "140",
-    "--travel-transition", "32",
+    "--travel-transition-min", "20", "--travel-transition-max", "60",
     "--window", "16", "--overlap", "8",
     "--fallback-896",
     "--out", $out
