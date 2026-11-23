@@ -80,10 +80,10 @@ Write-Host "Temporal context batch $window, overlap $overlap, stride 1, loop N (
 
 Write-Host ""
 Write-Host "Choose the prompt behaviour:"
-Write-Host "[1] Keep one prompt throughout (best for context A/B comparison)"
-Write-Host "[2] NEW experimental prompt travel (random semantic changes in the same neural clip)"
-$travelChoice = Read-Host "Option 1 or 2 (Enter for 1)"
-$travel = ($travelChoice -eq "2")
+Write-Host "[1] Single static prompt (for controlled baseline comparisons)"
+Write-Host "[2] Autonomous prompt travel (default; gradual random semantic evolution)"
+$travelChoice = Read-Host "Option 1 or 2 (Enter for 2)"
+$travel = ($travelChoice -ne "1")
 $travelArgs = @()
 if ($travel) {
     # We deliberately avoid the old 6-frame hard-feeling morphs.
