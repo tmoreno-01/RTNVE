@@ -33,7 +33,7 @@ foreach ($relative in $files) {
         }
         if ($relative -eq "benchmarks/animatediff_long_context.py") {
             $contents = Get-Content -LiteralPath $pending -Raw -Encoding UTF8
-            if (-not $contents.Contains('RTNVE_CONTEXT_PATCH = "2026-11-23-cfg-window-v2"')) {
+            if (-not $contents.Contains('RTNVE_CONTEXT_PATCH = "2026-11-23-nonloop-travel-v3"')) {
                 throw "Downloaded temporal script is the wrong version. Keeping your old file untouched."
             }
         }
