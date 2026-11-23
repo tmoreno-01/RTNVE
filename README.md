@@ -18,7 +18,7 @@ We don't label crossfades, image warps, tiled faces or video playback as neural 
 **The original Automatic1111 installations remain untouched.** The benchmarks use their *existing* model files in a separate local Python environment.
 
 1. Download the repository: **Code → Download ZIP** from https://github.com/tmoreno-01/RTNVE, then unzip it on your Windows computer. Alternatively, clone it with Git.
-2. If needed, install **Python 3.11** with the Python Launcher for Windows from https://www.python.org/downloads/windows/.
+2. **Python 3.11 or 3.12 works.** The setup script detects an existing installation on PATH or in common Windows install folders (the `py` launcher is optional).
 3. Double-click **01_SETUP_WINDOWS.bat**. It creates a project-local .venv and installs a CUDA-enabled PyTorch build and Diffusers. CUDA 12.6 needs a compatible NVIDIA driver; select a suitable build from https://pytorch.org/get-started/locally/ if that fails.
 4. Double-click **02_BENCHMARK_V3.bat**. Choose your original CyberRealistic SD1.5 checkpoint and **v3_sd15_mm.ckpt** in the file pickers.
 5. Select **1 (512×288)** for the *initial compatibility and speed check*, NOT the production-resolution goal. The script generates 16 frames at 24, 12, 8 and 4 diffusion steps and measures true generation time and peak VRAM.
