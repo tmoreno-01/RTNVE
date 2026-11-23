@@ -92,7 +92,7 @@ def prepare_model(a):
     pipe.to("cuda")
     pipe.set_progress_bar_config(disable=False)
     if a.vae_slicing:
-        pipe.enable_vae_slicing()
+        pipe.vae.enable_slicing()  # Diffusers >=0.39; avoids deprecated pipeline call
 
     print("Motion module:", type(adapter).__name__)
     print("Scheduler:", type(pipe.scheduler).__name__, "SDE DPM++ / exponential sigmas")
