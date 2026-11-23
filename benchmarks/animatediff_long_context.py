@@ -28,6 +28,8 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
+RTNVE_CONTEXT_PATCH = "2026-11-23-cfg-window-v2"
+
 from animatediff_v3 import prepare_model
 
 CITY_PROMPT = (
