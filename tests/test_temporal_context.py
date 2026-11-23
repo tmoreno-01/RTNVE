@@ -44,15 +44,42 @@ class UniformContextTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             uniform_contexts(0, 100, 13, 1, 13, "R+P")
 
-    def test_invalid_N_loop_explicitly_rejected(self):
+    def test_N_never_wraps_or_connects_final_to_first_frame(self):
+        # The non-looping mode must not ever place frame 0 immediately after
+        # the final frame in a temporal attention window.
+        for n, window, overlap in [(48, 16, 8), (100, 16, 8),
+                                   (48, 13, 6), (100, 13, 6)]:
+            for step in range(64):
+                windows = uniform_contexts(step, n, window, 1, overlap, "N")
+                self.assertTrue(windows)
+                self.assertEqual(set(f for w in windows for f in w), set(range(n)))
+                self.assertTrue(all(len(w) == window for w in windows))
+                for w in windows:
+                    self.assertEqual(w, list(range(w[0], w[0] + window)))
+
+    def test_N_fills_upstream_boundary_gap(self):
+        # The upstream A1111 algorithm can skip early frames at steps 4,8,
+        # etc., leaving uninitialised predictions. RTNVE repairs coverage.
+        for step in [4, 8, 16, 32]:
+            windows = uniform_contexts(step, 48, 16, 1, 8, "N")
+            covered = {f for w in windows for f in w}
+            self.assertEqual(covered, set(range(48)))
+            self.assertIn(0, covered)
+
+    def test_N_requires_stride_one(self):
         with self.assertRaises(ValueError):
-            uniform_contexts(0, 100, 13, 1, 6, "N")
+            uniform_contexts(0, 100, 16, 2, 8, "N")
 
     def test_different_lengths_and_overlaps(self):
         for n,b,o in [(48,13,6),(100,16,8),(32,12,4)]:
             for step in range(8):
                 all_frames = {i for w in uniform_contexts(step,n,b,1,o,"R+P") for i in w}
                 self.assertEqual(all_frames,set(range(n)))
+
+    def test_closed_loop_modes_still_available_for_regression(self):
+        for loop in ("R-P", "R+P", "A"):
+            windows = uniform_contexts(0, 48, 16, 1, 8, loop)
+            self.assertEqual(set(f for w in windows for f in w), set(range(48)))
 
     def test_diffusers_cfg_text_embeddings_follow_each_window(self):
         # Exactly the first failure case: 48 frames with context 13,
