@@ -66,6 +66,13 @@ class UniformContextTests(unittest.TestCase):
             self.assertEqual(covered, set(range(48)))
             self.assertIn(0, covered)
 
+    def test_overnight_1000_frame_nonloop_context_coverage(self):
+        for step in range(20):
+            windows = uniform_contexts(step, 1000, 16, 1, 8, "N")
+            self.assertGreater(len(windows), 100)
+            self.assertEqual({f for w in windows for f in w}, set(range(1000)))
+            self.assertTrue(all(w == list(range(w[0], w[0]+16)) for w in windows))
+
     def test_N_requires_stride_one(self):
         with self.assertRaises(ValueError):
             uniform_contexts(0, 100, 16, 2, 8, "N")
