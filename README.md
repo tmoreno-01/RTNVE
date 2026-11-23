@@ -4,6 +4,14 @@
 
 The ultimate goal is a live AI-generated visual world for concerts, museums, installations and websites. One coherent evolving scene; genuine neural synthesis with temporally connected transformations, unexpected appearances and disappearances, never a stack of portrait tiles or a prerecorded MP4.
 
+## Quality-first browser neural video research
+
+Your Chrome result — **658 untrained recurrent ONNX iterations/sec** — only proves genuine GPU-side neural state feedback; it is **not** video generation. RTNVE's rich 20-step AnimateDiff look is our fixed artistic standard.
+
+**[Read the real architectural alternatives and quality-first decision](QUALITY_FIRST_ENGINE_DECISION.md).** First test: use the [pretrained SD1.5 VAE reconstruction test](training/test_pretrained_video_vae.py) through **05_TEST_NEURAL_CODEC.bat** to see whether compressing and decoding your successful video retains its detailed strange visual morphs. It reports original-vs-decoded contact sheets and timed neural encode/decode, not live video FPS. Then we'll train a motion generator in latent space only if reconstruction quality warrants it.
+
+Do not mistake a 720p *displayed* frame produced by trained neural upscaling for native 720p model generation. No paid 24/7 GPU server is planned for the website; a local dedicated GPU remains an option for concert installations.
+
 ## Website and phone feasibility — zero GPU inference server
 
 **LifeAfterLogic's product requirement is an autonomous, genuinely neural evolving artwork on visitor GPUs, including supported phones, with no continuous rented GPU service.** This remains a research target; the successful 20-step AnimateDiff visuals are an artistic teacher, not yet a mobile-sized model.
