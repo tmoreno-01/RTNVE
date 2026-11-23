@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RTNVE — actual WebGPU neural inference probe</title>
+<style>
+:root{color-scheme:light;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+*{box-sizing:border-box}
+body{margin:0;background:white;color:#111}
+header{border-bottom:1px solid #dedede;padding:18px 24px;display:flex;justify-content:space-between}
+main{max-width:850px;margin:0 auto;padding:36px 22px 80px}
+h1{font-size:24px;letter-spacing:-.8px;line-height:1.2;margin:0 0 20px}
+p{font:14px/1.6 system-ui,sans-serif;color:#555}
+strong{color:#111}
+h2{font-size:15px;margin-top:30px}
+button{padding:12px 16px;border:1px solid #111;background:#111;color:white;font:inherit;cursor:pointer}
+button[disabled]{opacity:.35;cursor:wait}
+input{font:inherit;max-width:100%;margin:16px 0 6px}
+.panel{background:#f5f5f5;border:1px solid #e6e6e6;padding:16px;margin:20px 0}
+.mono{font-family:ui-monospace,Consolas,monospace}
+pre{font:12px/1.55 ui-monospace,Consolas,monospace;white-space:pre-wrap;word-break:break-word;overflow:auto;background:#f5f5f5;padding:18px}
+a{color:inherit;text-underline-offset:3px}
+.meta{color:#777;font-size:12px}
+.status{font-size:13px;padding:12px 0}
+@media(max-width:520px){main{padding:25px 15px}header{padding:15px}h1{font-size:21px}}
+</style>
+</head>
+<body>
+<header><strong>RTNVE <span class="meta">/ student portability</span></strong><span class="meta">LifeAfterLogic</span></header>
+<main>
+<h1>Can a recurrent neural network actually run on this device's GPU?</h1>
+<p>This is a <strong>real ONNX neural inference test</strong>, not a demo of RTNVE's artistic quality. The tiny network's weights are random and untrained. It will never show convincing hallucinations. It only measures whether PyTorch-exported, stateful neural computation runs through WebGPU <em>inside this browser</em>, including on a phone.</p>
+<div class="panel">
+<label for="model"><strong>Choose an exported recurrent_probe_*.onnx file</strong></label>
+<input id="model" type="file" accept=".onnx,application/octet-stream">
+<p class="meta">The model runs entirely on your device. This page does not upload it. Use training/export_webgpu_student_probe.py to create one.</p>
+<button id="run" type="button" disabled>Run neural inference test</button>
+<div id="status" class="status" aria-live="polite">Select an ONNX file above.</div>
+</div>
+<h2>Performance and compatibility</h2>
+<pre id="result" aria-live="polite">No results yet.</pre>
+<p>Output is measured as <strong>neural inference iterations per second</strong>, not AnimateDiff-quality generated FPS. The output tensor is fed back into the next inference while remaining GPU-resident when supported. Each iteration does convolutional neural-network work using ONNX Runtime WebGPU, but no learned visual dynamics yet.</p>
+<p>Don't compare this tiny network's FPS directly with a finished video model: it has orders of magnitude fewer learned parameters and does not decode full video frames. It's only the first transport / compatibility test.</p>
+<p><a href="../">Back to RTNVE Lab</a></p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ort.webgpu.min.js"></script>
+<script>
+const $ = id=>document.getElementById(id);
+const status = msg=>{$("status").textContent=msg};
+let chosenFile=null;
+$("model").addEventListener("change",()=>{
+  chosenFile=$("model").files?.[0]||null;
+  $("run").disabled=!chosenFile;
+  status(chosenFile?"Ready: "+chosenFile.name+" ("+(chosenFile.size/1024).toFixed(1)+" KiB)":"Choose a model.");
+});
+$("run").addEventListener("click",async()=>{
+  if (!chosenFile) return;
+  $("run").disabled=true;
+  $("result").textContent="Running locally…";
+  let session=null, state=null;
+  const report={project:"RTNVE",kind:"UNTRAINED ONNX recurrent CNN portability probe",
+    browser:navigator.userAgent,model:chosenFile.name,
+    modelBytes:chosenFile.size,time:new Date().toISOString(),
+    noServerInference:true, artisticOutput:false};
+  try{
+    if (!navigator.gpu)throw Error("WebGPU not exposed here. Try supported Chrome/Edge or Safari with WebGPU.");
+    if (typeof ort==="undefined")throw Error("ONNX Runtime WebGPU script could not load from CDN.");
+    const adapter=await navigator.gpu.requestAdapter({powerPreference:"high-performance"});
+    if(!adapter)throw Error("WebGPU adapter unavailable");
+    report.vendor=adapter.info?.vendor||"unknown";
+    report.f16=adapter.features.has("shader-f16");
+    status("Loading model into WebGPU. This is not downloading a pretrained video model.");
+    const buffer=await chosenFile.arrayBuffer();
+    const startedLoad=performance.now();
+    session=await ort.InferenceSession.create(buffer,{
+      executionProviders:["webgpu"],
+      preferredOutputLocation:"gpu-buffer",
+      graphOptimizationLevel:"all"
+    });
+    report.modelLoadMs=+(performance.now()-startedLoad).toFixed(1);
+    report.inputNames=session.inputNames;
+    report.outputNames=session.outputNames;
+    if(session.inputNames.length!==1 || session.inputNames[0]!=="state" ||
+       session.outputNames.length!==1 || session.outputNames[0]!=="next_state")
+      throw Error("This isn't the RTNVE recurrent probe model (needs state -> next_state).");
+    const matches=chosenFile.name.match(/_(\d+)x(\d+)(?:\.onnx)$/i);
+    if(!matches)throw Error("Filename must end with _WIDTHxHEIGHT.onnx, as produced by the exporter.");
+    const width=+matches[1],height=+matches[2],channels=8;
+    report.inputShape=[1,channels,height,width];
+    const count=channels*height*width;
+    const initial=new Float32Array(count);
+    for(let i=0;i<count;i++)initial[i]=Math.sin(i*0.071)*0.1;
+    state=new ort.Tensor("float32",initial,report.inputShape);
+    const oneStep=async()=>{
+      const outputs=await session.run({state});
+      const next=outputs.next_state;
+      if(!next)throw Error("Model did not return next_state.");
+      const old=state;
+      state=next;
+      old.dispose();
+    };
+    status("GPU warmup (8 recurrent iterations)…");
+    for(let i=0;i<8;i++)await oneStep();
+    await ort.env.webgpu.device?.queue?.onSubmittedWorkDone?.();
+    status("Benchmarking 60 GPU-resident recurrent iterations…");
+    const t0=performance.now();
+    for(let i=0;i<60;i++)await oneStep();
+    await ort.env.webgpu.device?.queue?.onSubmittedWorkDone?.();
+    const elapsed=performance.now()-t0;
+    report.recurrentIterations=60;
+    report.totalInferenceMs=+elapsed.toFixed(2);
+    report.meanMsPerIteration=+(elapsed/60).toFixed(2);
+    report.iterationsPerSecond=+(60000/elapsed).toFixed(2);
+    report.stateKeptOnGPU=true;
+    report.warning="Not art quality; random weights, no learned motion, no RGB decoder; NOT neural video FPS";
+    status("Complete. Copy these results into your RTNVE conversation.");
+    $("result").textContent=JSON.stringify(report,null,2);
+  }catch(e){
+    report.error=String(e?.message||e);
+    status("Could not complete. Please share the error report; this is why we're testing.");
+    $("result").textContent=JSON.stringify(report,null,2);
+  }finally{
+    try{state?.dispose();}catch{}
+    try{await session?.release();}catch{}
+    $("run").disabled=false;
+  }
+});
+</script>
+</body>
+</html>
