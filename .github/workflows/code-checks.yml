@@ -23,7 +23,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($file in @('scripts/01_Setup.ps1', 'scripts/02_Run_Benchmark.ps1', 'scripts/03_Run_Temporal.ps1')) {
+          foreach ($file in @('scripts/00_Update.ps1', 'scripts/01_Setup.ps1', 'scripts/02_Run_Benchmark.ps1', 'scripts/03_Run_Temporal.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile(
