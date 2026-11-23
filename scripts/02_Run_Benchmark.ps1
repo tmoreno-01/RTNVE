@@ -76,7 +76,7 @@ New-Item -ItemType Directory -Force -Path $target | Out-Null
 Write-Host ""
 Write-Host "CHECKPOINT: $Checkpoint"
 Write-Host "MOTION V3:  $Motion"
-Write-Host "TEST SIZE:  $Resolution / 16 frames / 24, 12, 8, 4 steps"
+Write-Host "TEST SIZE:  $Resolution / 16 frames / 20, 12, 8, 4 steps"
 Write-Host "RESULTS:    $target"
 Write-Host "WARNING: A1111 stays untouched; results may differ from the extension."
 Write-Host ""
@@ -86,7 +86,7 @@ $cmd = @(
     "--motion", $Motion,
     "--width", "$w", "--height", "$h",
     "--frames", "16",
-    "--steps", "24", "12", "8", "4",
+    "--steps", "20", "12", "8", "4",
     "--out", $target
 )
 if (-not $NoWarmup) { $cmd += "--warmup" }
@@ -96,4 +96,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host ""
 Write-Host "Completed. Share results.json and results.csv from $target" -ForegroundColor Green
-Write-Host "Also share the 24-step and 8-step MP4s if the render worked."
+Write-Host "Also share the 20-step and 8-step MP4s if the render worked."
