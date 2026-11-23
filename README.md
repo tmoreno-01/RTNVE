@@ -1,46 +1,65 @@
 # Real-Time Neural Video Engine (RTNVE)
 
-**LifeAfterLogic — neural video generation R&D.**
+**LifeAfterLogic — research and development for continuously evolving neural visuals.**
 
-AI Lab is the browser-based experiment playground for RTNVE.
+The ultimate goal is a live AI-generated visual world for concerts, museums, installations and websites. One coherent evolving scene; genuine neural synthesis with temporally connected transformations, unexpected appearances and disappearances, never a stack of portrait tiles or a prerecorded MP4.
 
-A standalone web playground for exploring **actual in-browser neural image generation**, working toward endlessly morphing, strange AnimateDiff V3-style artwork.
+## Current status — research prototype, not a finished engine
 
-The currently deployed page is just a **single-image WebGPU inference baseline**. It is not a temporally connected artwork, and we aren't presenting it as one. The earlier tiled face collage was rejected and removed from the home page. The goal is a **single evolving neural scene** with meaningful transformations.
+- **Working:** static GitHub-hosted WebGPU neural *image* generator used for initial browser capability checks (ganlive / pretrained GAN).
+- **Ready for local testing:** AnimateDiff V3 GPU benchmark on a Windows PC with an RTX 3090.
+- **Not implemented:** a trained, autoregressive / temporally conditioned model that can invent a continuous new neural scene at real-time speed.
+- **Not proven:** WebGPU 10 generated FPS at 1280×720, native temporal continuity, or mobile device support.
 
-## Run it
+We don't label crossfades, image warps, tiled faces or video playback as neural video generation.
 
-After this repo's static page is set up, visit `index.html` via a web server. For GitHub Pages, use **Settings → Pages → Build and deployment → Deploy from a branch → main → /(root) → Save**, then visit:
+## Start here — Windows RTX 3090
 
-https://tmoreno-01.github.io/experimentation/
+**The original Automatic1111 installations remain untouched.** The benchmarks use their *existing* model files in a separate local Python environment.
 
-You can also run locally with `python -m http.server 8000` then visit http://localhost:8000. A local server is recommended because module loading and WebGPU require a secure context (localhost or HTTPS).
+1. Download the repository: **Code → Download ZIP** from https://github.com/tmoreno-01/RTNVE, then unzip it on your Windows computer. Alternatively, clone it with Git.
+2. If needed, install **Python 3.11** with the Python Launcher for Windows from https://www.python.org/downloads/windows/.
+3. Double-click **01_SETUP_WINDOWS.bat**. It creates a project-local .venv and installs a CUDA-enabled PyTorch build and Diffusers. CUDA 12.6 needs a compatible NVIDIA driver; select a suitable build from https://pytorch.org/get-started/locally/ if that fails.
+4. Double-click **02_BENCHMARK_V3.bat**. Choose your original CyberRealistic SD1.5 checkpoint and **v3_sd15_mm.ckpt** in the file pickers.
+5. Select **1 (512×288)** for the *initial compatibility and speed check*, NOT the production-resolution goal. The script generates 16 frames at 24, 12, 8 and 4 diffusion steps and measures true generation time and peak VRAM.
+6. Once the first test succeeds, repeat step 4 at **768×432** and then **1280×720** if GPU memory allows.
+7. Share the generated results.csv, results.json and a few test MP4s from benchmarks/results/animatediff-v3/ in the conversation so we can inspect quality and actual performance. **Do not upload your checkpoint or motion model.**
 
-Use **Load neural model** on a modern Chrome/Edge version with WebGPU enabled. The pretrained model weights download from Hugging Face on first load. They are not stored in this repo.
+If Windows prints an error, copy the full terminal error rather than guessing at a fix. The launcher does not edit A1111, Windows drivers, or your installed system Python.
 
-## Experiments
+For detailed instructions: [benchmarks/README.md](benchmarks/README.md). Benchmark source: [benchmarks/animatediff_v3.py](benchmarks/animatediff_v3.py).
 
-1. **Neural morph** — actual browser-side generative image inference, with continuous latent walk, speed, variation and seed controls.
-2. **Temporal learning** — reserved for a future neural network trained on sequential AnimateDiff frames.
-3. **Image-conditioned feedback** — reserved for a future neural synthesizer that learns transformations rather than static views.
+## Development stages
 
-## Source and licenses
+| Stage | What we build | Completion criterion |
+|---|---|---|
+| 1. **Teacher parity + profiling** | A separate reproduction of SD1.5 CyberRealistic + AnimateDiff V3, and systematic CUDA measurements | Output visually comparable with the original reference and correct performance logs |
+| 2. **Speed experiments** | CUDA inference optimizations, AnimateLCM/consistency tests, reducing redundant computation | Better measured generation speed **without destroying the morphing aesthetic** |
+| 3. **Temporal student** | A significantly smaller model trained on full AnimateDiff frame sequences; motion state and evolving random innovation | Outputs a *new* continuous coherent clip, not interpolation between stills; sustained 30+ second validation |
+| 4. **Streaming + stability** | Infinite autoregressive output, handling its own feedback, long-duration tests and controllable changes | Sustained 5–15 minute sessions without freezing, collapse or repetitious resets |
+| 5. **WebGPU version** | Export/port compatible small model, GPU-resident state, performance and mobile fallback | True generated FPS measured in-browser on target GPUs |
+| 6. **Performance / installation engine** | Real-time performer control and reliable high-res show outputs using local dedicated GPU | Low-latency controllable visuals suitable for a live event |
 
-The WebGPU inference runtime is vendored from [ganlive](https://github.com/gustavecortal/ganlive) by Gustave Cortal (MIT license, pinned at commit `204afd323fd43ac2352b7e6e461874cd963a999c`). Retain the license in `vendor/ganlive/LICENSE` when redistributing.
+### Performance targets — aspirational, not achieved
 
-The pretrained model weights are hosted by their respective authors. **Model licenses apply separately**. Their usage here is for experiments. Generated imagery is not your own trained aesthetic yet.
+Initial aim: **10 truly generated neural FPS**; final aspirational aim: 720p at 24–30 FPS. Browser inference should run on a visitor GPU with **no always-on cloud GPU service**. Performance rigs can use a local dedicated GPU for higher quality. Low-end hardware may require lower resolution or reduced FPS.
 
-## Next research stage
+The architecture may diverge internally from the original AnimateDiff, provided it retains the **visually fascinating learned temporal dynamics**. We are not assuming a few-step image model automatically has these properties.
 
-Curate frames from the original A1111 + AnimateDiff V3 renders; train a custom lightweight image generator on a sufficiently diverse dataset; test latent continuity and temporal feedback. A model that merely interpolates recorded images, or that collapses into repetitive morphs, does not meet the eventual art goal.
+## Research files
 
-## What we're building next
+- [TEMPORAL_RESEARCH.md](TEMPORAL_RESEARCH.md) — temporal models, architecture options and acceptance criteria.
+- [training/prepare_video_frames.py](training/prepare_video_frames.py) — whole-frame dataset extraction.
+- [training/build_temporal_pairs.py](training/build_temporal_pairs.py) — ordered earlier-frame → later-frame pairs.
+- [training/ONE_STEP_FEEDBACK_TEST.md](training/ONE_STEP_FEEDBACK_TEST.md) — one-step image-conditioned research.
+- [training/STYLEGAN_V_FIRST_TEST.md](training/STYLEGAN_V_FIRST_TEST.md) — alternative continuous-time video GAN baseline.
 
-Read [TEMPORAL_RESEARCH.md](TEMPORAL_RESEARCH.md) before implementing new experiments. The two active research avenues are (1) time-conditioned continuous video GANs such as StyleGAN-V and (2) one-step *image-conditioned* generative models trained on consecutive video frames. Neither is ready for browser production yet; do not claim otherwise.
+## Browser Lab
 
-Local training resources:
-- [training/prepare_video_frames.py](training/prepare_video_frames.py) extracts ordered sequences from the user's A1111 videos.
-- [training/build_temporal_pairs.py](training/build_temporal_pairs.py) creates whole-frame earlier→later image pairs for a one-step conditional student.
-- [training/STYLEGAN_V_FIRST_TEST.md](training/STYLEGAN_V_FIRST_TEST.md) outlines the RTX 3090 pretrained temporal GAN evaluation.
+The root index.html is an **early neural-image test**, not RTNVE's final video engine. It is kept for browser performance tests only. The earlier tiled-face experiment was rejected and is no longer the main page. GitHub Pages may need to be reconfigured after the repo was renamed from experimentation to RTNVE. The expected default project URL, when Pages is enabled, is https://tmoreno-01.github.io/RTNVE/.
 
-Only substitute the live Lab model when an actual browser-deployable learned video generator works and passes extended motion tests.
+The original ganlive runtime is MIT-licensed; its model weights have separate licences. Model and dataset licences must be checked before commercial deployments.
+
+## Keep large assets off GitHub
+
+Do not commit checkpoint files, training samples, MP4s, or personal local results to this public repository; they are excluded by .gitignore. Training runs stay on your Windows machine. Use a separate public model host for any future deployable, properly licensed weights.
