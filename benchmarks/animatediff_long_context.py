@@ -100,6 +100,24 @@ def uniform_contexts(
     return windows
 
 
+def frame_condition_indices(batch_size: int, num_frames: int, context: list[int]) -> list[int]:
+    """Flat positions for Diffusers embeddings repeated per frame.
+
+    Diffusers 0.39's AnimateDiffPipeline uses
+    prompt_embeds.repeat_interleave(repeats=num_frames, dim=0).
+    For classifier-free guidance, those embeddings have shape
+    [2*batch_size*num_frames, tokens, channels], with negative and
+    positive prompts in separate blocks. We must take each temporal
+    window from EVERY block, in the matching order.
+    """
+    if batch_size < 1 or num_frames < 1:
+        raise ValueError("batch_size and num_frames must be positive")
+    if not context or any(f < 0 or f >= num_frames for f in context):
+        raise ValueError("context indices must be valid for the full video")
+    return [batch * num_frames + frame
+            for batch in range(batch_size) for frame in context]
+
+
 class SlidingContextController:
     """Replace only UNet.forward; keep the original pipeline denoising algorithm.
 
@@ -135,12 +153,44 @@ class SlidingContextController:
         )
         full_noise = torch.empty_like(sample)
         last_output = None
+        # In Diffusers 0.39, prompt embeddings are repeated across ALL
+        # frames before UNet.forward is called. Without slicing them too,
+        # AttnProcessor2_0 reshapes the 13-frame query using the 48-frame
+        # conditioning batch; this caused the 975 vs 3600 tensor error.
+        if args:
+            raise RuntimeError(
+                "Expected conditioning as keyword args. Diffusers pipeline API changed; "
+                "update the context wrapper before retrying."
+            )
+        embeddings = kwargs.get("encoder_hidden_states")
+        if not isinstance(embeddings, torch.Tensor) or embeddings.ndim != 3:
+            raise RuntimeError("Expected a 3D encoder_hidden_states tensor from Diffusers AnimateDiff.")
+        expected = sample.shape[0] * self.frames
+        if embeddings.shape[0] != expected:
+            raise RuntimeError(
+                f"Text-conditioning batch mismatch: received {embeddings.shape[0]}, "
+                f"expected {expected} ({sample.shape[0]} CFG batches * {self.frames} frames)."
+            )
+
         for indices in windows:
             idx = torch.tensor(indices, device=sample.device, dtype=torch.long)
             small_sample = sample.index_select(2, idx)
-            output = self.original_forward(small_sample, timestep, *args, **kwargs)
+            condition_indices = torch.tensor(
+                frame_condition_indices(sample.shape[0], self.frames, indices),
+                device=embeddings.device, dtype=torch.long,
+            )
+            small_kwargs = kwargs.copy()
+            small_kwargs["encoder_hidden_states"] = embeddings.index_select(
+                0, condition_indices
+            )
+            output = self.original_forward(small_sample, timestep, **small_kwargs)
             if not hasattr(output, "sample"):
                 raise RuntimeError("Unexpected UNet output; expected .sample")
+            if output.sample.shape != small_sample.shape:
+                raise RuntimeError(
+                    f"UNet temporal output has shape {tuple(output.sample.shape)} "
+                    f"but expected {tuple(small_sample.shape)}."
+                )
             # A1111-like overwrite, in window order. Not a frame-blend.
             full_noise.index_copy_(2, idx, output.sample)
             last_output = output
