@@ -100,7 +100,7 @@ def build_prompt_plan(
     first_prompt: str,
     min_interval: int = 50,
     max_interval: int = 200,
-    transition_frames: int = 16,
+    transition_frames: int = 28,
     base_style: str = "surreal documentary footage, detailed, cohesive scene",
 ) -> dict[str, Any]:
     """Return prompt bank plus a per-frame semantic-conditioning schedule.
