@@ -18,7 +18,7 @@ Both **720p and 1080p display output** remain goals. There are two separate task
 | Resolution | Image pixels | Relative to 640×360 |
 |---|---:|---:|
 | 640×360 (current working teacher) | 230,400 | 1× |
-| 960×540 | 518,400 | 2.25× |
+| 896×504 | 451,584 | 1.96× |
 | 1280×720 | 921,600 | 4× |
 | 1920×1080 | 2,073,600 | 9× |
 
@@ -30,7 +30,7 @@ The successful NVIDIA RTX 3090 teacher at 640×360, 48 frames, 20 diffusion step
 
 **Gate A — continuity and aesthetics.** Confirm the new N-mode (no cyclic first/last frame context), 16/8 motion, and 28-frame prompt changes. A beautiful continuous scene matters much more than a bigger blurry/broken image.
 
-**Gate B — teacher resolution scaling (offline only).** After Gate A, benchmark 48 frames at 640×360, then 960×540, and only if quality and VRAM allow, 1280×720. Keep the *same prompt, seed, loop mode, context size and CFG*. Compare:
+**Gate B — teacher resolution scaling (offline only).** After Gate A, benchmark 48 frames at 640×360, then 896×504, and only if quality and VRAM allow, 1280×720. Keep the *same prompt, seed, loop mode, context size and CFG*. Compare:
 - Motion and semantic transformations per frame;
 - Duplicated objects/faces and broken perspective;
 - Frame-to-frame stability and detailed textures;
