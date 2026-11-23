@@ -4,6 +4,21 @@
 
 The ultimate goal is a live AI-generated visual world for concerts, museums, installations and websites. One coherent evolving scene; genuine neural synthesis with temporally connected transformations, unexpected appearances and disappearances, never a stack of portrait tiles or a prerecorded MP4.
 
+## Latest pre-rendered beauty test: 1000 frames / 1280×720
+
+**[06_RENDER_1000_FRAMES.bat](06_RENDER_1000_FRAMES.bat)** launches a new 1000-frame overnight AnimateDiff V3 test. The existing 200-frame restriction in the earlier short-experiment script does NOT apply here. Update your local RTNVE scripts first using **00_UPDATE_RTNVE.bat** (refresh scripts/00_Update.ps1 from GitHub if the updater itself is old).
+
+- 1000 frames at 10 playback FPS = 100 seconds of **pre-rendered** neural video.
+- Target **1280×720**, 20 diffusion steps, CFG 6, seed 611, context 16, overlap 8, non-looping N.
+- A deliberately wild semantic prompt composer moves among crowded NYC surveillance, compressed faces and buses, impossible buildings, strange organisms, objects, interiors, glass, paper, plants and radical architectural transformations. It contains **no LoRA tags**.
+- Scene/prompt intervals vary **60–140 frames**. Each new transition independently lasts **20–60 frames**, with a gradual CLIP embedding mixture (not a finished-image crossfade). No hard switch is intended. The exact random values are saved in wild_prompt_plan.json.
+- This run uses **one globally denoised 1000-frame latent video**, not disconnected short clips. The existing V3 model is still an offline generator, not a causal live model.
+- Streaming **VAE decoding after denoising** avoids storing 1000 full-resolution PIL images in RAM. The MP4 is written as incomplete first, then renamed when fully encoded. The output JSON records actual dimensions, GPU peak, elapsed time and context call count.
+- **WARNING**: The 16-frame GPU preflight at 1280×720 detects a major per-window OOM before committing to a long generation, but **does not guarantee a full 1000-frame job fits in 24GiB**. The launcher explicitly permits a logged fallback to **896×504** if the initial 720p preflight runs out of memory. A full-render OOM after preflight may still end the run.
+- The overall 20-step global denoising process is **NOT resumable yet** after an interruption, even though individual encode frames and progress phases are logged to disk. This is a serious remaining overnight reliability risk. Don't interpret status.json as a resumable checkpoint.
+
+Files: benchmarks/wild_prompt_travel.py, benchmarks/overnight_1000.py, scripts/06_Run_Overnight.ps1, tests/test_wild_prompt_travel.py.
+
 ## Quality-first browser neural video research
 
 Your Chrome result — **658 untrained recurrent ONNX iterations/sec** — only proves genuine GPU-side neural state feedback; it is **not** video generation. RTNVE's rich 20-step AnimateDiff look is our fixed artistic standard.
