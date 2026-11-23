@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
 
-from animatediff_long_context import ordered_halving, uniform_contexts
+from animatediff_long_context import ordered_halving, uniform_contexts, frame_condition_indices
 
 
 class UniformContextTests(unittest.TestCase):
@@ -53,6 +53,30 @@ class UniformContextTests(unittest.TestCase):
             for step in range(8):
                 all_frames = {i for w in uniform_contexts(step,n,b,1,o,"R+P") for i in w}
                 self.assertEqual(all_frames,set(range(n)))
+
+    def test_diffusers_cfg_text_embeddings_follow_each_window(self):
+        # Exactly the first failure case: 48 frames with context 13,
+        # classifier-free guidance produces TWO sets of prompt embeddings.
+        frames = 48
+        context = list(range(13))
+        selection = frame_condition_indices(2, frames, context)
+        self.assertEqual(len(selection), 26)
+        self.assertEqual(selection[:13], context)
+        self.assertEqual(selection[13:], list(range(48, 61)))
+        # These indices align with the two [B,C,13,H,W] UNet inputs.
+
+    def test_shifted_temporal_window_selects_matching_prompt_frames(self):
+        context = [43, 44, 45, 46, 47, 0, 1, 2, 3, 4, 5, 6, 7]
+        selection = frame_condition_indices(2, 48, context)
+        self.assertEqual(selection[:13], context)
+        self.assertEqual(selection[13:], [x + 48 for x in context])
+
+    def test_context_alignment_rejects_bad_frame(self):
+        with self.assertRaises(ValueError):
+            frame_condition_indices(2, 48, [48])
+        with self.assertRaises(ValueError):
+            frame_condition_indices(0, 48, [1])
+
 
 if __name__ == "__main__":
     unittest.main()
