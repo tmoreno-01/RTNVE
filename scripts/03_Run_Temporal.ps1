@@ -43,17 +43,17 @@ $presetSelection = Read-Host "Preset 1 or 2 (Enter for 1)"
 $preset = if ($presetSelection -eq "2") { "windows" } else { "city" }
 Write-Host ""
 Write-Host "Choose the first test:"
-Write-Host "[1] 48 frames / 640x360  -- quicker validation"
-Write-Host "[2] 100 frames / 640x360 -- full 10-second motion test (recommended)"
-Write-Host "[3] 100 frames / 896x512 -- better detail, heavier"
+Write-Host "[1] 48 frames / 640x360  -- first run (recommended, validate code)"
+Write-Host "[2] 100 frames / 640x360 -- full 10-second motion test"
+Write-Host "[3] 100 frames / 896x504 -- better detail, heavier"
 Write-Host "[4] 100 frames / 1280x720 -- final target orientation; HIGH VRAM / slow; do not start here"
-$choice = Read-Host "Option 1, 2, 3 or 4 (Enter for 2)"
+$choice = Read-Host "Option 1, 2, 3 or 4 (Enter for 1)"
 $frames = 100; $width = 640; $height = 360
 switch ($choice) {
     "1" { $frames = 48 }
-    "3" { $width = 896; $height = 512 }
+    "3" { $width = 896; $height = 504 }
     "4" { $width = 1280; $height = 720 }
-    default { }
+    default { if ($choice -notin @("2", "3", "4")) { $frames = 48 } }
 }
 $out = Join-Path $root ("benchmarks\results\animatediff-context\" + $preset + "_" + $width + "x" + $height + "_" + $frames + "f")
 New-Item -ItemType Directory -Force -Path $out | Out-Null
