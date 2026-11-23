@@ -28,7 +28,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-RTNVE_CONTEXT_PATCH = "2026-11-23-cfg-window-v2"
+RTNVE_CONTEXT_PATCH = "2026-11-23-nonloop-travel-v3"
 
 from animatediff_v3 import prepare_model
 from prompt_travel import build_prompt_plan, encode_frame_conditioning
