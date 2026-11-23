@@ -22,9 +22,9 @@ Write-Host ""
 # Detect existing Python 3.11 through either the launcher, executable on PATH,
 # or the usual per-user/system install folders. Do not install Python globally.
 function Find-CompatiblePython {
-    # Run actual commands rather than judging a Python installation by its
-    # location. WindowsApps often contains a *working* Microsoft Store Python
-    # alias, and rejecting that path caused the previous false missing error.
+    # Don't rely on "py", installation paths, or complex quoting in -c.
+    # Windows PowerShell 5 can strip embedded double quotes from native
+    # command arguments; the old version test returned invalid Python code.
     $candidates = @(
         @{ exe = "python"; args = @(); label = "python on PATH" },
         @{ exe = "python3"; args = @(); label = "python3 on PATH" },
@@ -33,7 +33,6 @@ function Find-CompatiblePython {
         @{ exe = "py"; args = @("-3.12"); label = "py -3.12" },
         @{ exe = "py"; args = @("-3.11"); label = "py -3.11" }
     )
-
     $known = @()
     if ($env:LOCALAPPDATA) {
         $known += (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe")
@@ -45,7 +44,6 @@ function Find-CompatiblePython {
     }
     $known += "C:\Python312\python.exe"
     $known += "C:\Python311\python.exe"
-
     foreach ($exe in $known) {
         if (Test-Path $exe -PathType Leaf) {
             $candidates += @{ exe = $exe; args = @(); label = $exe }
@@ -56,15 +54,17 @@ function Find-CompatiblePython {
         $exe = [string]$candidate.exe
         $prefix = @($candidate.args)
         try {
-            # The script below prints only the version number. This works
-            # with the WindowsApps/Store Python alias if it launches Python.
-            $version = (& $exe @prefix -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>$null | Select-Object -Last 1)
-            if ($LASTEXITCODE -eq 0 -and "$version" -match '^3\.(11|12)\.\d+') {
-                Write-Host "Found compatible Python $version via $($candidate.label)" -ForegroundColor Green
+            # Only numbers, no string literals, no double quotes to be lost.
+            # "312" or "311" is returned by any usable Python installation.
+            $versionCode = & $exe @prefix -c 'import sys; print(sys.version_info.major * 100 + sys.version_info.minor)' 2>$null
+            $status = $LASTEXITCODE
+            if ($status -eq 0 -and ("$versionCode").Trim() -in @("311", "312")) {
+                Write-Host "Found Python $versionCode through $($candidate.label)" -ForegroundColor Green
                 return $candidate
             }
+            Write-Host "Tried $($candidate.label): exit $status, version code '$versionCode'"
         } catch {
-            # Command not installed or not working. Try next.
+            Write-Host "Tried $($candidate.label): $($_.Exception.Message)"
         }
     }
     return $null
