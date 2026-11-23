@@ -6,7 +6,7 @@ Updated November 23, 2026. For RTNVE / LifeAfterLogic.
 
 Do **not** rewrite or retrain the original SD1.5 AnimateDiff V3 motion module solely to output 1280×720 or 1920×1080 yet.
 
-The motion module and SD1.5 backbone were trained predominantly around 512-pixel spatial scale and finite temporal windows. They can process larger latent shapes, but a larger output is **not** guaranteed to look better: high-resolution inference can create duplicated subjects, inconsistent architecture, weaker motion, heavy attention/memory demands and long generation time. A code rewrite cannot replace the missing training distribution. Fine-tuning at high resolution could be a future *research experiment*, not an assumed easy optimisation.
+The SD1.5 image backbone was originally trained around a 512-pixel scale, and AnimateDiff's temporal motion modules were designed around short windows. **Your own A1111 examples show this V3 setup can render at 720×1280**, so larger output is possible without rewriting the weights. But it is not guaranteed to improve quality: direct high-res generation can duplicate subjects, distort composition, increase memory requirements and generate much more slowly. We should measure before trying expensive high-resolution fine-tuning; rewriting model code does not magically change what its weights learned.
 
 Both **720p and 1080p display output** remain goals. There are two separate tasks:
 
