@@ -43,16 +43,16 @@ $presetSelection = Read-Host "Preset 1 or 2 (Enter for 1)"
 $preset = if ($presetSelection -eq "2") { "windows" } else { "city" }
 Write-Host ""
 Write-Host "Choose the first test:"
-Write-Host "[1] 48 frames / 360x640  -- quicker validation"
-Write-Host "[2] 100 frames / 360x640 -- full 10-second motion test (recommended)"
-Write-Host "[3] 100 frames / 512x896 -- better detail, heavier"
-Write-Host "[4] 100 frames / 720x1280 -- screenshot size; HIGH VRAM / slow; do not start here"
+Write-Host "[1] 48 frames / 640x360  -- quicker validation"
+Write-Host "[2] 100 frames / 640x360 -- full 10-second motion test (recommended)"
+Write-Host "[3] 100 frames / 896x512 -- better detail, heavier"
+Write-Host "[4] 100 frames / 1280x720 -- final target orientation; HIGH VRAM / slow; do not start here"
 $choice = Read-Host "Option 1, 2, 3 or 4 (Enter for 2)"
-$frames = 100; $width = 360; $height = 640
+$frames = 100; $width = 640; $height = 360
 switch ($choice) {
     "1" { $frames = 48 }
-    "3" { $width = 512; $height = 896 }
-    "4" { $width = 720; $height = 1280 }
+    "3" { $width = 896; $height = 512 }
+    "4" { $width = 1280; $height = 720 }
     default { }
 }
 $out = Join-Path $root ("benchmarks\results\animatediff-context\" + $preset + "_" + $width + "x" + $height + "_" + $frames + "f")
@@ -62,7 +62,7 @@ Write-Host "Checkpoint: $checkpoint"
 Write-Host "Motion V3:  $motion"
 Write-Host "Video:      $frames frames / $width x $height / 10 playback FPS"
 Write-Host "A1111-style context batch 13, overlap 6, stride 1, loop R+P"
-Write-Host "20 steps, CFG 5, seed 611"
+Write-Host "20 steps, CFG 6, seed 611"
 Write-Host "Outputs: $out"
 Write-Host "NOTE: Weighted prompt syntax and scheduler are still not identical to A1111."
 Write-Host "This full-video fidelity test is substantially more computationally expensive"
@@ -78,7 +78,7 @@ $argList = @(
     "--width", [string]$width,
     "--height", [string]$height,
     "--steps", "20",
-    "--guidance", "5",
+    "--guidance", "6",
     "--seed", "611",
     "--window", "13",
     "--overlap", "6",
