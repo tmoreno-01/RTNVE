@@ -13,6 +13,12 @@ The ultimate goal is a live AI-generated visual world for concerts, museums, ins
 
 We don't label crossfades, image warps, tiled faces or video playback as neural video generation.
 
+## Browser engine plan
+
+**[Read the technical bridge from A1111 teacher → small causal student → WebGPU website engine](BROWSER_ENGINE_ROADMAP.md)**. The eventual browser engine is not the heavy 20-step A1111 pipeline converted directly to JavaScript. It will be a much smaller learned, temporally stateful model that generates new content on visitor GPUs.
+
+**Current defaults:** landscape **640×360** (16:9), **CFG 6**, 20 steps, context 13, overlap 6, seed 611. Start the new 03 temporal test with **48 frames** to check compatibility, then test 100 frames. The earlier portrait CFG 5 screenshot is a historical reference, not the new production direction.
+
 ## New: 100-frame A1111-style temporal context test (experimental)
 
 The 16-frame RTX 3090 benchmark worked but produces almost static shots. In contrast, the two uploaded original A1111 clips contain 100 frames at 10 FPS with substantial changes across the entire scene.
