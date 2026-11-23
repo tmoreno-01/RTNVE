@@ -4,7 +4,7 @@
 IMPORTANT:
 * One connected 1000-frame latent video, NOT separate clips or crossfades.
 * Every denoising step runs a non-looping overlapping 16/8 AnimateDiff context.
-* 20 steps CFG6 with wildly random prompts and 32-frame CLIP transitions.
+* 20 steps CFG6 with wildly random prompts and per-change 20-60-frame CLIP morphs.
 * 1280x720 HIGH RISK on an RTX3090. A 16-frame 1-step GPU preflight checks
   whether the largest UNet activation fits before the expensive 1000f pass.
 * output_type='latent': no 1000-frame PIL/CPU image stack.
@@ -47,7 +47,8 @@ def cli():
     parser.add_argument("--travel-seed",type=int,default=9191)
     parser.add_argument("--travel-min",type=int,default=60)
     parser.add_argument("--travel-max",type=int,default=140)
-    parser.add_argument("--travel-transition",type=int,default=32)
+    parser.add_argument("--travel-transition-min",type=int,default=20)
+    parser.add_argument("--travel-transition-max",type=int,default=60)
     parser.add_argument("--window",type=int,default=16)
     parser.add_argument("--overlap",type=int,default=8)
     parser.add_argument("--out",type=Path,default=Path("benchmarks/results/overnight1000"))
@@ -150,8 +151,10 @@ def main():
         raise ValueError("Dimensions must be divisible by 8")
     if a.window!=16 or a.overlap!=8:
         raise ValueError("Overnight teacher is intentionally fixed at 16/8, proven quality setup")
-    if not 1<=a.travel_transition<a.travel_min<=a.travel_max:
-        raise ValueError("Prompt transition and dwell range invalid")
+    if not 1<=a.travel_transition_min<=a.travel_transition_max:
+        raise ValueError("Prompt transition range invalid")
+    if a.travel_transition_min>=a.travel_min or a.travel_min>a.travel_max:
+        raise ValueError("Prompt transitions must fit within dwell lengths")
     if a.frames<a.travel_min:
         raise ValueError("Frame count less than minimum prompt dwell")
 
@@ -164,7 +167,8 @@ def main():
     free_disk=shutil.disk_usage(a.out).free
     if free_disk<2*1024**3:
         raise RuntimeError("At least 2 GiB free disk requested before overnight encoding")
-    plan=make_plan(a.frames, a.travel_seed,a.travel_min,a.travel_max,a.travel_transition)
+    plan=make_plan(a.frames, a.travel_seed,a.travel_min,a.travel_max,
+                   a.travel_transition_min,a.travel_transition_max)
     plan_path=a.out/"wild_prompt_plan.json"
     plan_path.write_text(json.dumps(plan,indent=2,ensure_ascii=False),encoding="utf-8")
 
@@ -174,7 +178,8 @@ def main():
     print(f"TARGET: {a.width}x{a.height}, {a.steps} steps, CFG {a.guidance}")
     print(f"CONTEXT: 16/8, stride 1, N (absolutely no loop)")
     print(f"SEMANTICS: {len(plan['prompts'])} separate wild prompts,")
-    print(f"60–140 frame dwell, {a.travel_transition}-frame smooth CLIP interpolation.")
+    print(f"{a.travel_min}-{a.travel_max} frame random dwell, independently varied "
+          f"{a.travel_transition_min}-{a.travel_transition_max} frame CLIP morphs.")
     print("NO LoRAs. No server inference. This is SLOW offline CUDA synthesis.")
     print("PROGRESS file: ",a.out/"status.json")
     print("WARN: 1000-frame global denoising does not yet support resuming")
@@ -213,7 +218,10 @@ def main():
         "prompt_plan":str(plan_path),
         "travel_prompts":len(plan["prompts"]),
         "travel_seed":a.travel_seed,"travel_dwell_min":a.travel_min,
-        "travel_dwell_max":a.travel_max,"travel_transition_frames":a.travel_transition,
+        "travel_dwell_max":a.travel_max,
+        "travel_transition_min":a.travel_transition_min,
+        "travel_transition_max":a.travel_transition_max,
+        "individual_transition_lengths": [seg["transition_frames"] for seg in plan["segments"]],
         "torch":torch.__version__,"diffusers":diffusers.__version__,
         "fallback_used":(a.width,a.height)!=(1280,720),
         "note":"No midstep-resume; all 1000 latents jointly denoised, then stream-decoded."
