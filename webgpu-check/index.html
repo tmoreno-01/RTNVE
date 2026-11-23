@@ -68,7 +68,10 @@ async function run(){
     report.vendor=info.vendor||"not exposed";
     report.architecture=info.architecture||"not exposed";
     report.device=info.device||"not exposed";
-    report.shaderF16=device.features.has("shader-f16");
+    // Optional WebGPU features are NOT enabled unless requestDevice asks for them.
+    // We want capability of the adapter, not just activated default device features.
+    report.shaderF16=adapter.features.has("shader-f16");
+    report.shaderF16DefaultDeviceEnabled=device.features.has("shader-f16");
     report.maxStorageBufferBindingSize=device.limits.maxStorageBufferBindingSize;
     report.maxBufferSize=device.limits.maxBufferSize;
     val("webgpu","Available");
