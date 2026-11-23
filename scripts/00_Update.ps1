@@ -7,6 +7,7 @@ Set-Location $root
 $base = "https://raw.githubusercontent.com/tmoreno-01/RTNVE/main"
 $files = @(
     "benchmarks/animatediff_long_context.py",
+    "benchmarks/prompt_travel.py",
     "benchmarks/animatediff_v3.py",
     "scripts/03_Run_Temporal.ps1",
     "03_BENCHMARK_TEMPORAL.bat"
