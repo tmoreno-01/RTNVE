@@ -22,55 +22,59 @@ Write-Host ""
 # Detect existing Python 3.11 through either the launcher, executable on PATH,
 # or the usual per-user/system install folders. Do not install Python globally.
 function Find-CompatiblePython {
-    $candidates = @()
-
-    foreach ($name in @("python", "python3.12", "python3.11", "python3", "py")) {
-        $cmd = Get-Command $name -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -eq $cmd) { continue }
-        $exe = $cmd.Source
-        if (-not $exe -or $exe -like "*\Microsoft\WindowsApps\python*") { continue }
-        $args = if ($name -eq "py") { @("-3.12") } else { @() }
-        $candidates += ,@{ exe = $exe; args = $args; label = $name }
-    }
-
-    # Official python.org installations are often not added to PATH.
-    $known = @(
-        (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\Python\Python311\python.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\Python\Python311-32\python.exe"),
-        (Join-Path $env:ProgramFiles "Python312\python.exe"),
-        (Join-Path $env:ProgramFiles "Python311\python.exe"),
-        "C:\Python312\python.exe",
-        "C:\Python311\python.exe"
+    # Run actual commands rather than judging a Python installation by its
+    # location. WindowsApps often contains a *working* Microsoft Store Python
+    # alias, and rejecting that path caused the previous false missing error.
+    $candidates = @(
+        @{ exe = "python"; args = @(); label = "python on PATH" },
+        @{ exe = "python3"; args = @(); label = "python3 on PATH" },
+        @{ exe = "python3.12"; args = @(); label = "python3.12 on PATH" },
+        @{ exe = "python3.11"; args = @(); label = "python3.11 on PATH" },
+        @{ exe = "py"; args = @("-3.12"); label = "py -3.12" },
+        @{ exe = "py"; args = @("-3.11"); label = "py -3.11" }
     )
+
+    $known = @()
+    if ($env:LOCALAPPDATA) {
+        $known += (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe")
+        $known += (Join-Path $env:LOCALAPPDATA "Programs\Python\Python311\python.exe")
+    }
+    if ($env:ProgramFiles) {
+        $known += (Join-Path $env:ProgramFiles "Python312\python.exe")
+        $known += (Join-Path $env:ProgramFiles "Python311\python.exe")
+    }
+    $known += "C:\Python312\python.exe"
+    $known += "C:\Python311\python.exe"
+
     foreach ($exe in $known) {
         if (Test-Path $exe -PathType Leaf) {
-            $candidates += ,@{ exe = $exe; args = @(); label = $exe }
+            $candidates += @{ exe = $exe; args = @(); label = $exe }
         }
     }
 
     foreach ($candidate in $candidates) {
-        $exe = $candidate.exe
-        $prefix = $candidate.args
+        $exe = [string]$candidate.exe
+        $prefix = @($candidate.args)
         try {
-            $version = & $exe @prefix -c 'import sys; print(".".join(map(str, sys.version_info[:3])))' 2>$null
-            if ($LASTEXITCODE -eq 0 -and $version -match '^3\.(11|12)\.') {
-                Write-Host "Found Python $version via $($candidate.label)" -ForegroundColor Green
+            # The script below prints only the version number. This works
+            # with the WindowsApps/Store Python alias if it launches Python.
+            $version = (& $exe @prefix -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>$null | Select-Object -Last 1)
+            if ($LASTEXITCODE -eq 0 -and "$version" -match '^3\.(11|12)\.\d+') {
+                Write-Host "Found compatible Python $version via $($candidate.label)" -ForegroundColor Green
                 return $candidate
             }
         } catch {
-            # Try the next available Python installation instead.
+            # Command not installed or not working. Try next.
         }
     }
     return $null
 }
-
 if (-not (Test-Path $pythonExe)) {
-    Write-Host "Looking for Python 3.11 or 3.12 (launcher, PATH or install folder)..."
+    Write-Host "Checking available Python commands directly (including Windows Store aliases)..."
     $found = Find-CompatiblePython
     if ($null -eq $found) {
         Write-Host ""
-        Write-Host "Python 3.11/3.12 was not found. Your RTX 3090 and A1111 are not the problem." -ForegroundColor Yellow
+        Write-Host "Could not execute compatible Python 3.11 or 3.12. A1111 and your RTX 3090 are unaffected." -ForegroundColor Yellow
         Write-Host "Install Python 3.12 for Windows (64-bit) from:"
         Write-Host "https://www.python.org/downloads/windows/"
         Write-Host "Choose the Windows installer (64-bit), not the embeddable package."
