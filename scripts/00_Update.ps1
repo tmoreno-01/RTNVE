@@ -10,7 +10,11 @@ $files = @(
     "benchmarks/prompt_travel.py",
     "benchmarks/animatediff_v3.py",
     "scripts/03_Run_Temporal.ps1",
-    "03_BENCHMARK_TEMPORAL.bat"
+    "03_BENCHMARK_TEMPORAL.bat",
+    "training/export_webgpu_student_probe.py",
+    "webgpu-student-probe/index.html",
+    "scripts/04_Build_Probe.ps1",
+    "04_BUILD_WEBGPU_PROBE.bat"
 )
 Write-Host ""
 Write-Host "RTNVE - download updated source files from GitHub" -ForegroundColor Cyan
