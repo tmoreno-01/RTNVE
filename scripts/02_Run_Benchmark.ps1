@@ -3,7 +3,6 @@
 param(
     [string]$Checkpoint = "",
     [string]$Motion = "",
-    [ValidateSet("512x288", "768x432", "1280x720")]
     [string]$Resolution = "",
     [switch]$NoWarmup
 )
@@ -67,6 +66,7 @@ if ([string]::IsNullOrEmpty($Resolution)) {
         default { "512x288" }
     }
 }
+if (-not @("512x288", "768x432", "1280x720").Contains($Resolution)) { throw "Unsupported resolution: $Resolution" }
 $parts = $Resolution.Split("x")
 $w = [int]$parts[0]
 $h = [int]$parts[1]
