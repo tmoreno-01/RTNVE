@@ -69,7 +69,40 @@ Write-Host ""
 Write-Host "Checkpoint: $checkpoint"
 Write-Host "Motion V3:  $motion"
 Write-Host "Video:      $frames frames / $width x $height / 10 playback FPS"
-Write-Host "A1111-style context batch 13, overlap 6, stride 1, loop R+P"
+Write-Host "A1111-style context batch $window, overlap $overlap, stride 1, loop R+P"
+Write-Host ""
+Write-Host "Choose the temporal window settings:"
+Write-Host "[1] Context 13 / overlap 6 (successful reference)"
+Write-Host "[2] Context 16 / overlap 8 (smoother motion hypothesis - A/B comparison)"
+$contextChoice = Read-Host "Option 1 or 2 (Enter for 2)"
+$window = if ($contextChoice -eq "1") { 13 } else { 16 }
+$overlap = if ($contextChoice -eq "1") { 6 } else { 8 }
+
+Write-Host ""
+Write-Host "Choose the prompt behaviour:"
+Write-Host "[1] Keep one prompt throughout (best for context A/B comparison)"
+Write-Host "[2] NEW experimental prompt travel (random semantic changes in the same neural clip)"
+$travelChoice = Read-Host "Option 1 or 2 (Enter for 1)"
+$travel = ($travelChoice -eq "2")
+$travelArgs = @()
+if ($travel) {
+    # The default production plan is random 50/100/200-frame intervals.
+    # Short 48-frame clips use shorter intervals so you can inspect multiple
+    # semantic changes without rendering 200+ offline frames.
+    if ($frames -le 48) {
+        $travelMin = 12; $travelMax = 16; $travelTransition = 6
+    } else {
+        $travelMin = 50; $travelMax = 50; $travelTransition = 16
+    }
+    $travelArgs = @(
+        "--prompt-travel",
+        "--travel-seed", "9191",
+        "--travel-min", [string]$travelMin,
+        "--travel-max", [string]$travelMax,
+        "--travel-transition", [string]$travelTransition
+    )
+    Write-Host "Prompt travel preview: interval $travelMin-$travelMax frames; transition $travelTransition frames."
+}
 Write-Host "20 steps, CFG 6, seed 611"
 Write-Host "Outputs: $out"
 Write-Host "NOTE: Weighted prompt syntax and scheduler are still not identical to A1111."
@@ -88,17 +121,18 @@ $argList = @(
     "--steps", "20",
     "--guidance", "6",
     "--seed", "611",
-    "--window", "13",
-    "--overlap", "6",
+    "--window", [string]$window,
+    "--overlap", [string]$overlap,
     "--stride", "1",
     "--loop", "R+P",
     "--fps", "10",
     "--out", $out
 )
+$argList += $travelArgs
 & $pythonExe @argList
 if ($LASTEXITCODE -ne 0) {
     throw "RTNVE temporal test failed with exit code $LASTEXITCODE. Send complete error."
 }
 Write-Host ""
-Write-Host "SUCCESS. Please upload the MP4 and temporal_results.json from:"
+Write-Host "SUCCESS. Please upload the MP4 and its matching *_results.json from:"
 Write-Host "$out"
