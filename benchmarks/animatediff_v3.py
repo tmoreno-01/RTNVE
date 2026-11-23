@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--height", type=int, default=288)
     p.add_argument("--frames", type=int, default=16)
     p.add_argument("--steps", nargs="+", type=int, default=[20, 12, 8, 4])
-    p.add_argument("--guidance", type=float, default=7.0)
+    p.add_argument("--guidance", type=float, default=6.0)
     p.add_argument("--seed", type=int, default=2)
     p.add_argument("--fps", type=int, default=10, help="Playback FPS for saved preview, not measured generation FPS")
     p.add_argument("--prompt", default="strange looking people, cars driving,( High angle view of people walking around new york city, cctv:1.2),  shattering, ripping apart, destruction, leaves, plants growing, tearing")
