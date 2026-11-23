@@ -77,6 +77,24 @@ The *learned student* generates the new content. GPU shaders may perform only im
 
 Work on real, temporally trained diffusion distillation (e.g. ideas from Causal Forcing / Self Forcing) rather than assuming undistilled 4-step SD 1.5 works. Research is still active and heavyweight models may not fit the 3090 or browsers.
 
+## Autonomous prompt travel — artistic behaviour target
+
+The final work should not rely on someone typing a prompt every few seconds. The engine should **keep inventing** its own changing world while preserving the visual continuity of what came before.
+
+1. A reproducible **semantic composer** continuously chooses scene, subjects, objects, materials and transformation behaviours. Avoid an obvious repeat cycle and avoid resetting the entire canvas every time.
+2. The next semantic state is scheduled at variable frame intervals (initial target **50 / 100 / 200 frames**, selected unpredictably). At 10 generated FPS that means roughly 5/10/20 seconds; at 30 FPS it means 1.7/3.3/6.7 seconds, so timing should eventually be defined in **seconds**, not hardcoded frame numbers.
+3. Precompute/carry compact *conditioning embeddings* and vary them over successive neural inference frames. Do **not** run a huge CLIP text encoder for each video frame in the browser.
+4. Transition by updating the **neural model's conditioning while preserving its recurrent visual state**, not by crossfading RGB images. A model needs explicit training to **respond to mid-stream conditioning changes without collapsing, snapping, or ignoring them**.
+5. Add separate dials for frequency of radical changes, subtle mutations, structural coherence, revisiting old motifs and new semantic inventions. The random generator's seed makes interesting runs reproducible for artistic editing.
+6. Scene switches must NOT automatically reset the model's hidden state. Unexpectedness and continuity need to coexist.
+7. Use a smaller, cached prompt-bank encoder first; genuine unbounded new text might later require a lightweight generator or deliberate grammar expansion, which is independent of live neural inference.
+
+### Working toward this
+
+**Teacher experiment, CPU schedule implemented:** `benchmarks/prompt_travel.py` builds seeded prompt schedules from thousands of grammatical combinations, and constructs interpolated CLIP embeddings per frame. `benchmarks/animatediff_long_context.py --prompt-travel` injects them into the *same* global latent sequence. That is an **offline test only**, not causal streaming or evidence that it looks good yet. The teacher's current R+P context can pull the last frames towards the opening frame; production continuous generation must remove this forced-loop behaviour. Next gate: evaluate 16/8 vs13/6 and test 48-frame rapid semantic changes, then 100-frame travel if quality justifies the cost.
+
+**Browser feasibility test:** your desktop browser reports WebGPU on NVIDIA Ampere with `shaderF16:true` and max individual storage buffer binding 128 MiB, max buffer 256 MiB. This is promising for native FP16 inference, but these are **per-buffer constraints, not total available GPU memory**. No WebGPU neural student has been benchmarked yet.
+
 ## Browser implementation requirements
 
 - **ONNX Runtime Web with WebGPU EP** is our practical first route; WGSL/WebGPU custom kernels remain an alternative for unsupported operations.
