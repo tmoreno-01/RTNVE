@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--guidance", type=float, default=7.0)
     p.add_argument("--seed", type=int, default=2)
     p.add_argument("--fps", type=int, default=10, help="Playback FPS for saved preview, not measured generation FPS")
-    p.add_argument("--prompt", default="A medium angle view of many faces squeezed together in an underground train station, breaking apart into impossible organic structures, photographic detail")
+    p.add_argument("--prompt", default="strange looking people, cars driving,( High angle view of people walking around new york city, cctv:1.2),  shattering, ripping apart, destruction, leaves, plants growing, tearing")
     p.add_argument("--negative", default="")
     p.add_argument("--out", type=Path, default=Path("benchmarks/results/animatediff-v3"))
     p.add_argument("--warmup", action="store_true", help="Run an additional short warmup before timed measurements.")
@@ -159,6 +159,8 @@ def main():
     except ImportError as error:
         raise RuntimeError("Missing Python dependencies; see benchmarks/README.md") from error
 
+    print("PROMPT:", a.prompt)
+    print("NOTE: A1111 emphasis syntax such as (:1.2) is not interpreted identically by the plain Diffusers prompt encoder.")
     pipe = prepare_model(a)
     meta = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
