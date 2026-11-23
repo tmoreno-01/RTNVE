@@ -36,7 +36,7 @@ class PromptTravelTests(unittest.TestCase):
         self.assertGreater(transition_weight(0, 8), 0)
         self.assertLess(transition_weight(0, 8), 1)
         self.assertEqual(transition_weight(7, 8), 1.0)
-        self.assertEqual(transition_weight(3, 7), 0.5)
+        self.assertEqual(transition_weight(3, 8), 0.5)
 
     def test_prompt_invention_does_not_repeat_immediately(self):
         rng = random.Random(44)
