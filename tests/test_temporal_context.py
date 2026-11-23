@@ -1,0 +1,58 @@
+"""RTNVE temporal context scheduler tests. No GPU/dependencies required."""
+import sys
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
+
+from animatediff_long_context import ordered_halving, uniform_contexts
+
+
+class UniformContextTests(unittest.TestCase):
+    def test_a1111_phase_sequence(self):
+        self.assertEqual(ordered_halving(0), 0)
+        self.assertEqual(ordered_halving(1), 0.5)
+        self.assertEqual(ordered_halving(2), 0.25)
+        self.assertEqual(ordered_halving(3), 0.75)
+
+    def test_screen_settings_cover_all_100_frames_at_every_step(self):
+        for step in range(20):
+            w = uniform_contexts(step, 100, 13, 1, 6, "R+P")
+            self.assertEqual(len(w), 14)
+            self.assertTrue(all(len(ids) == 13 for ids in w))
+            hits = [i for ids in w for i in ids]
+            self.assertEqual(set(hits), set(range(100)))
+            self.assertEqual(len(hits), 14 * 13)
+
+    def test_known_first_step_windows_match_original_generator(self):
+        w = uniform_contexts(0, 100, 13, 1, 6, "R+P")
+        self.assertEqual(w[0], list(range(13)))
+        self.assertEqual(w[-1], list(range(91, 100)) + list(range(4)))
+
+    def test_step_shift_changes_contexts(self):
+        a = uniform_contexts(0, 100, 13, 1, 6, "R+P")
+        b = uniform_contexts(1, 100, 13, 1, 6, "R+P")
+        self.assertNotEqual(a[0], b[0])
+        self.assertEqual(b[0], list(range(50, 63)))
+
+    def test_one_window(self):
+        self.assertEqual(
+            uniform_contexts(0, 13, 13, 1, 6, "R+P"), [list(range(13))]
+        )
+
+    def test_invalid_overlap_rejected(self):
+        with self.assertRaises(ValueError):
+            uniform_contexts(0, 100, 13, 1, 13, "R+P")
+
+    def test_invalid_N_loop_explicitly_rejected(self):
+        with self.assertRaises(ValueError):
+            uniform_contexts(0, 100, 13, 1, 6, "N")
+
+    def test_different_lengths_and_overlaps(self):
+        for n,b,o in [(48,13,6),(100,16,8),(32,12,4)]:
+            for step in range(8):
+                all_frames = {i for w in uniform_contexts(step,n,b,1,o,"R+P") for i in w}
+                self.assertEqual(all_frames,set(range(n)))
+
+if __name__ == "__main__":
+    unittest.main()
