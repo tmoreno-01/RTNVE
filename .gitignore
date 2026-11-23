@@ -24,3 +24,6 @@ __pycache__/
 .DS_Store
 benchmarks/results/
 *.log
+
+# Local untrained ONNX probe artifacts (not production model weights)
+model_probes/
