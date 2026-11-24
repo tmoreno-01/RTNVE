@@ -24,7 +24,10 @@ $files = @(
     "06_RENDER_1000_FRAMES.bat",
     "benchmarks/curated_prompt_travel.py",
     "scripts/07_Run_Curated.ps1",
-    "07_RENDER_CURATED.bat"
+    "07_RENDER_CURATED.bat",
+    "scripts/08_Run_Curated_200.ps1",
+    "08_RENDER_CURATED_200.bat",
+    "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""
 Write-Host "RTNVE - download updated source files from GitHub" -ForegroundColor Cyan
