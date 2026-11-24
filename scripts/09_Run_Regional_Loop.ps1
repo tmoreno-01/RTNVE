@@ -1,4 +1,4 @@
-# 60-frame single-global-latent overnight render, original V3/CyberRealistic.
+# 60-frame R-P regional single-global-latent render, original V3/CyberRealistic.
 # Prevents Windows system sleep while running; monitor may sleep.
 $ErrorActionPreference="Stop"
 $root=Split-Path -Parent $PSScriptRoot
@@ -17,12 +17,12 @@ if (-not (Test-Path $checkpoint -PathType Leaf)) {
 if (-not (Test-Path $motion -PathType Leaf)) {
     throw "AnimateDiff V3 motion model not found: $motion"
 }
-$out=Join-Path $root "benchmarks\results\regional60_cfg7"
+$out=Join-Path $root "benchmarks\results\regional60_rp_cfg7"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 Write-Host ""
 Write-Host "RTNVE REGIONAL LOOP: 60 FRAMES AT 1280x720, 10 FPS" -ForegroundColor Cyan
-Write-Host "20 steps, CFG 7, context16 overlap8, A circular loop."
+Write-Host "20 steps, CFG 7, context16 overlap8, R-P loop."
 Write-Host "Three moving organic regions: faces, traffic, LEDs and technology. Global CCTV conditioning."
 Write-Host "One global latent video, no LoRA tags, no stitching or clips."
 Write-Host "Full-resolution regional GPU preflight. No lower-resolution fallback."
