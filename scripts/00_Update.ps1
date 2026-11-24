@@ -27,6 +27,10 @@ $files = @(
     "07_RENDER_CURATED.bat",
     "scripts/08_Run_Curated_200.ps1",
     "08_RENDER_CURATED_200.bat",
+    "benchmarks/regional_prompt_travel.py",
+    "benchmarks/regional_loop_60.py",
+    "scripts/09_Run_Regional_Loop.ps1",
+    "09_RENDER_REGIONAL_LOOP.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""
