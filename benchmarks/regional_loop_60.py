@@ -10,13 +10,14 @@ from animatediff_v3 import prepare_model
 from animatediff_long_context import uniform_contexts
 from overnight_1000 import decode_to_mp4, progress_status
 from regional_prompt_travel import (build_plan, make_masks, encode_regions,
-                                    RegionalState, CircularContext, install_processors)
+                                    RegionalState, CircularContext, install_processors,
+                                    REGIONAL_LOOP_MODE)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint",type=Path,required=True)
     p.add_argument("--motion",type=Path,required=True)
-    p.add_argument("--out",type=Path,default=Path("benchmarks/results/regional60_cfg7"))
+    p.add_argument("--out",type=Path,default=Path("benchmarks/results/regional60_rp_cfg7"))
     p.add_argument("--seed",type=int,default=611)
     p.add_argument("--travel-seed",type=int,default=9191)
     a=p.parse_args()
@@ -33,7 +34,7 @@ def main():
     plan=build_plan(a.frames,a.travel_seed)
     (a.out/"regional_prompt_plan.json").write_text(json.dumps(plan,indent=2),encoding="utf-8")
     print("RTNVE REGIONAL LOOP: 60 frames, 1280x720, 10 FPS, CFG7, 20 steps",flush=True)
-    print("Circular A context 16/8; three moving, overlapping regional prompts.",flush=True)
+    print(f"Actual context mode: {REGIONAL_LOOP_MODE}, 16/8; three moving, overlapping regional prompts.",flush=True)
     print("Global:",plan["global_prompt"],flush=True)
     for r in plan["regions"]:
         print(r["name"]+": "+" | ".join(r["prompts"]),flush=True)
@@ -88,11 +89,14 @@ def main():
         del test
         pipe.unet.forward=base_forward
         gc.collect();torch.cuda.empty_cache()
-        windows=[len(uniform_contexts(s,60,16,1,8,"A")) for s in range(20)]
+        windows=[len(uniform_contexts(s,a.frames,16,1,8,REGIONAL_LOOP_MODE)) for s in range(20)]
         print(f"PREFLIGHT PASS: {probe_sec:.1f}s; {sum(windows)} full UNet windows planned.",flush=True)
         print(f"Very rough GPU-time estimate from preflight: {probe_sec*sum(windows)/60:.0f} min; actual may vary considerably.",flush=True)
-        print("Starting full circular diffusion.",flush=True)
+        print(f"Starting full {REGIONAL_LOOP_MODE} diffusion.",flush=True)
         control=CircularContext(pipe.unet,state,a.frames)
+        if control.loop != REGIONAL_LOOP_MODE or probe.loop != REGIONAL_LOOP_MODE:
+            raise RuntimeError("Regional loop configuration mismatch")
+        print(f"Verified live controller loop: {control.loop}",flush=True)
         state.calls=0
         torch.cuda.reset_peak_memory_stats()
         start=time.monotonic()
@@ -102,27 +106,29 @@ def main():
         seconds=time.monotonic()-start
         peak=torch.cuda.max_memory_allocated()/2**30
         calls=state.calls
+        if control.total_unet_calls != sum(windows):
+            raise RuntimeError("Actual context call count differs from R-P schedule")
     finally:
         pipe.unet.forward=base_forward
         pipe.unet.set_attn_processor(dict(original_processors))
     # Preserve the completed latents so a subsequent decoder failure does not
     # destroy the expensive result. Mid-denoising resume is not implemented.
     torch.save(latent.detach().cpu(),a.out/"completed_latents.pt")
-    path=a.out/f"RTNVE_regional_60f_1280x720_loopA_cfg7_seed{a.seed}.mp4"
+    path=a.out/f"RTNVE_regional_60f_1280x720_loopRP_cfg7_seed{a.seed}.mp4"
     progress_status(a.out,"encoding",step=0,total=a.frames)
     decode_to_mp4(pipe,latent,path,a.fps,
                   lambda i,n:progress_status(a.out,"encoding",step=i,total=n))
     result=dict(frames=a.frames,width=a.width,height=a.height,fps=a.fps,steps=a.steps,
                 guidance=a.guidance,seed=a.seed,travel_seed=a.travel_seed,
                 checkpoint=str(a.checkpoint),motion=str(a.motion),
-                loop="A",context_window=16,context_overlap=8,stride=1,
+                loop=control.loop,context_window=16,context_overlap=8,stride=1,
                 window_merge="tapered noise prediction consensus",
                 regional_attention_layers=names,regional_attention_calls=calls,
                 unet_forward_calls=control.total_unet_calls,
                 preflight_seconds=probe_sec,latent_denoising_seconds=seconds,
                 total_seconds=time.monotonic()-total_start,peak_allocated_gib=peak,
                 torch=torch.__version__,diffusers=diffusers.__version__,video=str(path),
-                warning="Circular conditioning encourages closure; visual seam not guaranteed.")
+                warning="R-P wrapped contexts and periodic conditioning encourage closure; visual seam not guaranteed. Not exact A1111 parity.")
     (a.out/"completed_results.json").write_text(json.dumps(result,indent=2),encoding="utf-8")
     progress_status(a.out,"complete",step=a.frames,total=a.frames,info={"video":str(path)})
     print("COMPLETE:",path,flush=True)
