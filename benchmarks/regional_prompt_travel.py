@@ -30,6 +30,32 @@ REGIONS = (
     ), (0.23, 0.55, 0.90), (0.25,0.70)),
 )
 
+
+# Stronger regional profile for the 150-frame experiment.
+REFINED_REGIONS = (
+    ("faces", (
+        "high angle CCTV, hundreds of overlapping faces and bodies, diverse commuters, heads emerging from coats, crisp documentary detail",
+        "high angle CCTV, crowd squeezed around a bus stop, faces inside faces, bodies folding into each other, distorted clothing, sharp detail",
+        "high angle CCTV, human faces forming apartment windows, crowds melting into jackets and bags, torn paper and glass",
+        "high angle CCTV, commuters packed together, duplicated heads, interwoven facial features, dense human texture, documentary realism",
+    ), (0.00,0.24,0.55,0.82), (0.55,1.15)),
+    ("traffic", (
+        "high angle CCTV, dense traffic of taxis and buses, duplicate cars, people pushing cars, sharp headlights and windscreens",
+        "high angle CCTV, vehicles carrying smaller cars, roads overlapping, traffic knots, broken concrete and reflections",
+        "high angle CCTV, cars unfolding into miniature rooms and crowds, overlapping roads, shattered glass",
+        "high angle CCTV, traffic jam turning organic, car bodies splitting and reforming, dense street detail",
+    ), (0.10,0.34,0.66,0.91), (0.50,1.05)),
+    ("technology", (
+        "high angle CCTV, dense LED panels and CRT televisions, tiny faces inside monitors, illuminated circuitry and reflective glass",
+        "high angle CCTV, computer screens opening into crowded rooms, illuminated wires and electronic displays, sharp detail",
+        "high angle CCTV, LED signs and surveillance monitors growing through buildings and human figures, tangled cables, glass",
+        "high angle CCTV, glowing ad screens, signal lights, broken monitors and data displays swallowing the street",
+    ), (0.18,0.44,0.73,0.96), (0.45,1.00)),
+)
+REFINED_GLOBAL = ("high angle fixed CCTV view, crowded New York intersection at night, pedestrians, taxis, "
+                  "illuminated LED screens, fractured glass, overlapping architecture, strange but believable realism, "
+                  "documentary photograph, crisp fine detail, deep focus, dense foreground and background")
+
 def prompt_at(t, knots):
     """Periodic eased interpolation, with a small hold near each anchor."""
     t = t % 1.0
@@ -43,35 +69,37 @@ def prompt_at(t, knots):
             return i,(i+1)%len(knots),u*u*(3-2*u)
     raise AssertionError("Periodic prompt schedule failed")
 
-def build_plan(frames=60, seed=9191):
+def build_plan(frames=60, seed=9191, refined=False):
     if frames<16:
         raise ValueError("At least 16 frames required")
     r=random.Random(seed)
     regions=[]
-    for i,(name,prompts,knots,bounds) in enumerate(REGIONS):
+    for i,(name,prompts,knots,bounds) in enumerate(REFINED_REGIONS if refined else REGIONS):
         regions.append(dict(name=name,prompts=list(prompts),knots=list(knots),
                             strength_range=list(bounds),phase=i*2*math.pi/3+r.uniform(-.22,.22),
                             distortion_phase=r.uniform(0,2*math.pi)))
-    plan=dict(version=2,frames=frames,seed=seed,loop=REGIONAL_LOOP_MODE,global_prompt=GLOBAL,negative=NEGATIVE,
-              global_weight=.38,regions=regions,mask_method="periodic warped soft ellipses; normalized overlapping attention weights")
+    plan=dict(version=3 if refined else 2,frames=frames,seed=seed,loop=REGIONAL_LOOP_MODE,
+              profile='strong-regions' if refined else 'baseline',global_prompt=REFINED_GLOBAL if refined else GLOBAL,negative=NEGATIVE,
+              global_weight=.20 if refined else .38,regions=regions,mask_method="periodic warped soft ellipses; normalized overlapping attention weights")
     plan["schedule"]=[frame_params(plan,f) for f in range(frames)]
     return plan
 
 def frame_params(plan, f):
     t=(f%plan["frames"])/plan["frames"]
     a=2*math.pi*t
+    refined=plan.get('profile')=='strong-regions'
     records=[]
     for reg in plan["regions"]:
         p=reg["phase"];q=reg["distortion_phase"]
         lo,hi=reg["strength_range"]
         left,right,alpha=prompt_at(t,reg["knots"])
         records.append(dict(name=reg["name"],left=left,right=right,alpha=alpha,
-                            cx=.50+.29*math.cos(a+p)+.055*math.sin(2*a+q),
-                            cy=.50+.25*math.sin(a+p)+.045*math.cos(2*a+q),
-                            rx=.30+.095*math.sin(a+p+.6),
-                            ry=.34+.10*math.cos(a+p-1.),
-                            angle=.53*math.sin(a+p),
-                            warp=.15+.055*math.sin(2*a+q),
+                            cx=.50+(.36 if refined else .29)*math.cos(a+p)+(.08 if refined else .055)*math.sin(2*a+q),
+                            cy=.50+(.30 if refined else .25)*math.sin(a+p)+(.06 if refined else .045)*math.cos(2*a+q),
+                            rx=(.23 if refined else .30)+(.07 if refined else .095)*math.sin(a+p+.6),
+                            ry=(.27 if refined else .34)+(.08 if refined else .10)*math.cos(a+p-1.),
+                            angle=(.70 if refined else .53)*math.sin(a+p),
+                            warp=(.22 if refined else .15)+(.08 if refined else .055)*math.sin(2*a+q),
                             wave=a+q,
                             strength=lo+(hi-lo)*(.5+.5*math.cos(a+p+.4))))
     return dict(frame=f%plan["frames"],regions=records)
