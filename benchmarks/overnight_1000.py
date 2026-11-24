@@ -53,6 +53,7 @@ def cli():
     parser.add_argument("--overlap",type=int,default=8)
     parser.add_argument("--out",type=Path,default=Path("benchmarks/results/overnight1000"))
     parser.add_argument("--fallback-896",action="store_true",help="Only if 1280x720 GPU preflight OOM, automatically use 896x504 instead of ending overnight")
+    parser.add_argument("--curated",action="store_true",help="Use curated urban prompt travel and clarity-focused negatives")
     parser.add_argument("--skip-preflight",action="store_true",help="Not recommended")
     return parser.parse_args()
 
@@ -167,22 +168,31 @@ def main():
     free_disk=shutil.disk_usage(a.out).free
     if free_disk<2*1024**3:
         raise RuntimeError("At least 2 GiB free disk requested before overnight encoding")
-    plan=make_plan(a.frames, a.travel_seed,a.travel_min,a.travel_max,
-                   a.travel_transition_min,a.travel_transition_max)
-    plan_path=a.out/"wild_prompt_plan.json"
+    planner=make_plan
+    negative="nsfw, vignette, shallow depth of field, blank background, empty scene"
+    if a.curated:
+        from curated_prompt_travel import make_plan as curated_plan, NEGATIVE
+        planner=curated_plan
+        negative=NEGATIVE
+    plan=planner(a.frames, a.travel_seed,a.travel_min,a.travel_max,
+                 a.travel_transition_min,a.travel_transition_max)
+    plan["negative"]=negative
+    first_prompt=plan["prompts"][0]
+    label="curated" if a.curated else "wild"
+    plan_path=a.out/f"{label}_prompt_plan.json"
     plan_path.write_text(json.dumps(plan,indent=2,ensure_ascii=False),encoding="utf-8")
 
     print("="*68)
-    print("RTNVE OVERNIGHT: one connected latent video, WITHOUT the old 200f cap")
+    print(f"RTNVE {label.upper()}: one connected latent video")
     print(f"FRAMES: {a.frames}; FPS: {a.fps}; PLAYBACK: {a.frames/a.fps:.0f} sec")
     print(f"TARGET: {a.width}x{a.height}, {a.steps} steps, CFG {a.guidance}")
     print(f"CONTEXT: 16/8, stride 1, N (absolutely no loop)")
-    print(f"SEMANTICS: {len(plan['prompts'])} separate wild prompts,")
+    print(f"SEMANTICS: {len(plan['prompts'])} separate {label} prompts,")
     print(f"{a.travel_min}-{a.travel_max} frame random dwell, independently varied "
           f"{a.travel_transition_min}-{a.travel_transition_max} frame CLIP morphs.")
     print("NO LoRAs. No server inference. This is SLOW offline CUDA synthesis.")
     print("PROGRESS file: ",a.out/"status.json")
-    print("WARN: 1000-frame global denoising does not yet support resuming")
+    print("WARN: global denoising does not yet support resuming")
     print("      halfway through if power is lost. Completed MP4 is streamed safely.")
     print("="*68,flush=True)
     for i,prompt in enumerate(plan["prompts"]):
@@ -216,6 +226,8 @@ def main():
         "context_window":16,"context_overlap":8,"stride":1,"loop":"N",
         "checkpoint":str(a.checkpoint),"motion":str(a.motion),
         "prompt_plan":str(plan_path),
+        "prompt_mode":label,"negative_prompt":negative,
+        "dwell_definition":plan.get("dwell_definition","interval includes morph"),
         "travel_prompts":len(plan["prompts"]),
         "travel_seed":a.travel_seed,"travel_dwell_min":a.travel_min,
         "travel_dwell_max":a.travel_max,
@@ -224,17 +236,22 @@ def main():
         "individual_transition_lengths": [seg["transition_frames"] for seg in plan["segments"]],
         "torch":torch.__version__,"diffusers":diffusers.__version__,
         "fallback_used":(a.width,a.height)!=(1280,720),
-        "note":"No midstep-resume; all 1000 latents jointly denoised, then stream-decoded."
+        "note":"No midstep-resume; all latents jointly denoised, then stream-decoded."
     }
     (a.out/"run_manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
-    print("Encoding wild prompt CLIP bank. Some long text may truncate at 77 tokens.",flush=True)
+    print(f"Encoding {label} prompt CLIP bank.",flush=True)
+    if a.curated:
+        for p in [*plan["prompts"],negative]:
+            count=len(pipe.tokenizer(p,truncation=False,add_special_tokens=True)["input_ids"])
+            print(f"CLIP tokens: {count}/{pipe.tokenizer.model_max_length}",flush=True)
+            if count>pipe.tokenizer.model_max_length:
+                raise ValueError(f"Curated prompt exceeds CLIP token budget: {p}")
     # Unlike old 48-frame test, initial text is the first wild prompt.
     frame_conditioning=encode_frame_conditioning(
-        pipe,plan,
-        "nsfw, vignette, shallow depth of field, blank background, empty scene"
+        pipe,plan,negative
     )
     if frame_conditioning.shape[0]!=2*a.frames:
-        raise RuntimeError("Prompt bank didn't align with 1000 frame CFG conditioning")
+        raise RuntimeError("Prompt bank didn't align with global frame CFG conditioning")
     del plan
     torch.cuda.empty_cache()
 
@@ -262,8 +279,8 @@ def main():
         torch.cuda.synchronize()
         with torch.inference_mode():
             generated=pipe(
-                prompt="high-angle crowded street transformed into impossible architecture",
-                negative_prompt="nsfw, vignette, shallow depth of field, blank background, empty scene",
+                prompt=first_prompt,
+                negative_prompt=negative,
                 num_frames=a.frames,
                 width=a.width,height=a.height,
                 num_inference_steps=a.steps,
@@ -286,7 +303,7 @@ def main():
         raise RuntimeError("Denoising returned no latent video")
     latent=generated.frames
     del generated;gc.collect()
-    name=f"RTNVE_wild_{a.frames}f_{a.width}x{a.height}_N_ctx16-8_seed{a.seed}.mp4"
+    name=f"RTNVE_{label}_{a.frames}f_{a.width}x{a.height}_N_ctx16-8_seed{a.seed}"+(f"_cfg{a.guidance:g}" if a.curated else "")+".mp4"
     output=a.out/name
     progress_status(a.out,"encoding",info={"latent_seconds":round(seconds,2)})
 
@@ -317,4 +334,4 @@ if __name__=="__main__":
         main()
     except Exception as exc:
         traceback.print_exc()
-        sys.exit(f"RTNVE 1000-FRAME OVERNIGHT RENDER FAILED: {exc}")
+        sys.exit(f"RTNVE GLOBAL RENDER FAILED: {exc}")
