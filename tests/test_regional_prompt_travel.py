@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"benchmarks"))
-from regional_prompt_travel import build_plan, frame_params, prompt_at
+from regional_prompt_travel import build_plan, frame_params, prompt_at, CircularContext, REGIONAL_LOOP_MODE
 from animatediff_long_context import uniform_contexts
 
 class RegionalPlanTests(unittest.TestCase):
@@ -29,8 +29,16 @@ class RegionalPlanTests(unittest.TestCase):
             self.assertEqual({r["left"] for r in rows},{0,1,2})
             self.assertTrue(all(r["rx"]>0 and r["ry"]>0 for r in rows))
     def test_circular_windows(self):
+        self.assertEqual(REGIONAL_LOOP_MODE,"R-P")
+        self.assertEqual(build_plan()["loop"],"R-P")
+        class Stub:
+            def forward(self): pass
+        controller=CircularContext(Stub(),None,60)
+        self.assertEqual(controller.loop,"R-P")
         for step in range(20):
-            windows=uniform_contexts(step,60,16,1,8,"A")
+            windows=uniform_contexts(step,60,16,1,8,controller.loop)
+            self.assertEqual(len(windows),7)
+            self.assertNotEqual(windows,uniform_contexts(step,60,16,1,8,"A"))
             self.assertEqual({f for w in windows for f in w},set(range(60)))
             self.assertTrue(any(any(b<a for a,b in zip(w,w[1:])) for w in windows))
     def test_masks_and_attention_cpu_if_available(self):
