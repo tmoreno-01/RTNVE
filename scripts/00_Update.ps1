@@ -31,6 +31,9 @@ $files = @(
     "benchmarks/regional_loop_60.py",
     "scripts/09_Run_Regional_Loop.ps1",
     "09_RENDER_REGIONAL_LOOP.bat",
+    "benchmarks/regional_loop_150.py",
+    "scripts/10_Run_Regional_Loop_150.ps1",
+    "10_RENDER_REGIONAL_LOOP_150.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""
