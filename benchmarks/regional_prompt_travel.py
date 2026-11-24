@@ -4,6 +4,8 @@ Pure schedule functions are importable without torch.
 import math
 import random
 
+REGIONAL_LOOP_MODE = "R-P"
+
 GLOBAL = ("high angle fixed CCTV view, crowded New York intersection, pedestrians, taxis, "
           "illuminated LED screens, fractured glass, overlapping architecture, "
           "documentary photograph, crisp fine detail, deep focus")
@@ -50,7 +52,7 @@ def build_plan(frames=60, seed=9191):
         regions.append(dict(name=name,prompts=list(prompts),knots=list(knots),
                             strength_range=list(bounds),phase=i*2*math.pi/3+r.uniform(-.22,.22),
                             distortion_phase=r.uniform(0,2*math.pi)))
-    plan=dict(version=1,frames=frames,seed=seed,global_prompt=GLOBAL,negative=NEGATIVE,
+    plan=dict(version=2,frames=frames,seed=seed,loop=REGIONAL_LOOP_MODE,global_prompt=GLOBAL,negative=NEGATIVE,
               global_weight=.38,regions=regions,mask_method="periodic warped soft ellipses; normalized overlapping attention weights")
     plan["schedule"]=[frame_params(plan,f) for f in range(frames)]
     return plan
@@ -201,6 +203,7 @@ class CircularContext:
         self.frames=frames
         self.window=window
         self.overlap=overlap
+        self.loop=REGIONAL_LOOP_MODE
         self.step=0
         self.total_unet_calls=0
 
@@ -212,7 +215,7 @@ class CircularContext:
         emb=kwargs["encoder_hidden_states"]
         if emb.ndim!=3 or emb.shape[0]!=2*self.frames:
             raise RuntimeError(f"Unexpected global conditioning shape {tuple(emb.shape)}")
-        windows=uniform_contexts(self.step,self.frames,self.window,1,self.overlap,"A")
+        windows=uniform_contexts(self.step,self.frames,self.window,1,self.overlap,self.loop)
         accum=torch.zeros_like(sample,dtype=torch.float32)
         denominator=torch.zeros(self.frames,device=sample.device,dtype=torch.float32)
         taper=.15+.85*torch.sin(math.pi*(torch.arange(self.window,device=sample.device)+.5)/self.window).square()
