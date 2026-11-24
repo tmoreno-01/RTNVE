@@ -41,6 +41,25 @@ class RegionalPlanTests(unittest.TestCase):
             self.assertNotEqual(windows,uniform_contexts(step,60,16,1,8,"A"))
             self.assertEqual({f for w in windows for f in w},set(range(60)))
             self.assertTrue(any(any(b<a for a,b in zip(w,w[1:])) for w in windows))
+
+    def test_refined_150(self):
+        p=build_plan(150,9191,refined=True)
+        self.assertEqual(p["loop"],"R-P")
+        self.assertEqual(p["global_weight"],.20)
+        self.assertEqual(build_plan()["global_weight"],.38)
+        self.assertEqual(len(p["schedule"]),150)
+        self.assertEqual(frame_params(p,0),frame_params(p,150))
+        for i,r in enumerate(p["regions"]):
+            self.assertEqual(len(r["prompts"]),4)
+            rows=[x["regions"][i] for x in p["schedule"]]
+            self.assertEqual({x["left"] for x in rows},set(range(4)))
+            self.assertTrue(all(0<=x["alpha"]<=1 and x["rx"]>0 and x["ry"]>0 for x in rows))
+        for step in range(20):
+            windows=uniform_contexts(step,150,16,1,8,"R-P")
+            self.assertEqual(len(windows),18)
+            self.assertEqual({f for w in windows for f in w},set(range(150)))
+            self.assertTrue(any(b<a for w in windows for a,b in zip(w,w[1:])))
+
     def test_masks_and_attention_cpu_if_available(self):
         try:
             import torch
