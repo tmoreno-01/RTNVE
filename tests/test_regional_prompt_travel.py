@@ -60,6 +60,25 @@ class RegionalPlanTests(unittest.TestCase):
             self.assertEqual({f for w in windows for f in w},set(range(150)))
             self.assertTrue(any(b<a for w in windows for a,b in zip(w,w[1:])))
 
+
+    def test_softwild_150(self):
+        p=build_plan(150,9191,softwild=True)
+        baseline=build_plan(150,9191,refined=True)
+        self.assertEqual(p["profile"],"softwild")
+        self.assertEqual(p["global_weight"],.18)
+        self.assertEqual(p["loop"],"R-P")
+        self.assertEqual(len(p["schedule"]),150)
+        self.assertEqual(p["schedule"],baseline["schedule"])
+        self.assertEqual(frame_params(p,0),frame_params(p,150))
+        self.assertNotEqual(p["global_prompt"],baseline["global_prompt"])
+        self.assertNotEqual(p["negative"],baseline["negative"])
+        for word in ("blurry","out of focus","bad anatomy","oversmoothed"):
+            self.assertNotIn(word,p["negative"])
+        for region,old in zip(p["regions"],baseline["regions"]):
+            self.assertEqual(len(region["prompts"]),4)
+            self.assertNotEqual(region["prompts"],old["prompts"])
+        self.assertEqual(build_plan(150,9191,refined=True),baseline)
+
     def test_masks_and_attention_cpu_if_available(self):
         try:
             import torch
