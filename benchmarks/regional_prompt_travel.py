@@ -56,6 +56,36 @@ REFINED_GLOBAL = ("high angle fixed CCTV view, crowded New York intersection at 
                   "illuminated LED screens, fractured glass, overlapping architecture, strange but believable realism, "
                   "documentary photograph, crisp fine detail, deep focus, dense foreground and background")
 
+
+# Softwild retains the proven mask geometry while changing semantic content.
+SOFTWILD_GLOBAL = ("high angle fixed CCTV view over crowded city streets at dusk, pedestrians, faces, "
+                   "taxis, LED screens, reflections, impossible scale changes, dense layered urban photography, "
+                   "dreamlike realism, gentle motion softness")
+SOFTWILD_NEGATIVE = ("nsfw, low resolution, watermark, logo, frame, border, cartoon, CGI, "
+                     "empty background, simple composition")
+SOFTWILD_PROMPTS = (
+    (
+        "high angle CCTV, enormous crowd, overlapping faces and bodies, heads emerging from coats and bags, soft photographic textures",
+        "high angle CCTV, commuters folding into each other, faces inside faces, people dissolving into clothing, motion softness, reflections",
+        "high angle CCTV, giant human faces stretching across bus windows, tiny pedestrians spilling from their reflections, surreal urban photography",
+        "high angle CCTV, people unfolding into vast crowds, duplicated heads, faces becoming windows, interwoven coats, dreamlike realism",
+    ),
+    (
+        "high angle CCTV, taxis and buses surrounded by hundreds of pedestrians, miniature cars carried by giant hands, soft reflections",
+        "high angle CCTV, vehicles carrying smaller vehicles, roads folding into each other, buses opening into rooms full of people, hazy glass",
+        "high angle CCTV, cars unfolding into crowds, human faces appearing in windscreens, headlights dissolving into bodies, layered street motion",
+        "high angle CCTV, traffic turning into tangled people, cars splitting and reforming, crowds growing from road markings, dreamlike realism",
+    ),
+    (
+        "high angle CCTV, LED billboards and CRT monitors, tiny faces inside screens, crowds crossing illuminated glass, tangled cables, soft electronic glow",
+        "high angle CCTV, computer screens opening into crowded rooms, human faces growing from illuminated wires, soft reflections, broken displays",
+        "high angle CCTV, enormous faces made of LED screens swallowing the street, people stepping through electronic reflections, luminous haze",
+        "high angle CCTV, surveillance monitors becoming people, illuminated cables winding through crowds, faces interwoven with technology, soft glow",
+    ),
+)
+SOFTWILD_REGIONS = tuple((name, prompts, knots, bounds)
+                         for (name, _, knots, bounds), prompts in zip(REFINED_REGIONS, SOFTWILD_PROMPTS))
+
 def prompt_at(t, knots):
     """Periodic eased interpolation, with a small hold near each anchor."""
     t = t % 1.0
@@ -69,25 +99,28 @@ def prompt_at(t, knots):
             return i,(i+1)%len(knots),u*u*(3-2*u)
     raise AssertionError("Periodic prompt schedule failed")
 
-def build_plan(frames=60, seed=9191, refined=False):
+def build_plan(frames=60, seed=9191, refined=False, softwild=False):
     if frames<16:
         raise ValueError("At least 16 frames required")
+    refined = refined or softwild
     r=random.Random(seed)
     regions=[]
-    for i,(name,prompts,knots,bounds) in enumerate(REFINED_REGIONS if refined else REGIONS):
+    for i,(name,prompts,knots,bounds) in enumerate(SOFTWILD_REGIONS if softwild else REFINED_REGIONS if refined else REGIONS):
         regions.append(dict(name=name,prompts=list(prompts),knots=list(knots),
                             strength_range=list(bounds),phase=i*2*math.pi/3+r.uniform(-.22,.22),
                             distortion_phase=r.uniform(0,2*math.pi)))
-    plan=dict(version=3 if refined else 2,frames=frames,seed=seed,loop=REGIONAL_LOOP_MODE,
-              profile='strong-regions' if refined else 'baseline',global_prompt=REFINED_GLOBAL if refined else GLOBAL,negative=NEGATIVE,
-              global_weight=.20 if refined else .38,regions=regions,mask_method="periodic warped soft ellipses; normalized overlapping attention weights")
+    plan=dict(version=4 if softwild else 3 if refined else 2,frames=frames,seed=seed,loop=REGIONAL_LOOP_MODE,
+              profile='softwild' if softwild else 'strong-regions' if refined else 'baseline',
+              global_prompt=SOFTWILD_GLOBAL if softwild else REFINED_GLOBAL if refined else GLOBAL,
+              negative=SOFTWILD_NEGATIVE if softwild else NEGATIVE,
+              global_weight=.18 if softwild else .20 if refined else .38,regions=regions,mask_method="periodic warped soft ellipses; normalized overlapping attention weights")
     plan["schedule"]=[frame_params(plan,f) for f in range(frames)]
     return plan
 
 def frame_params(plan, f):
     t=(f%plan["frames"])/plan["frames"]
     a=2*math.pi*t
-    refined=plan.get('profile')=='strong-regions'
+    refined=plan.get('profile') in ('strong-regions','softwild')
     records=[]
     for reg in plan["regions"]:
         p=reg["phase"];q=reg["distortion_phase"]
