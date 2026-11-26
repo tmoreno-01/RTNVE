@@ -1,4 +1,4 @@
-# 150-frame N global single-global-latent render, original V3/CyberRealistic.
+# 150-frame A global single-global-latent render, original V3/CyberRealistic.
 # Prevents Windows system sleep while running; monitor may sleep.
 $ErrorActionPreference="Stop"
 $root=Split-Path -Parent $PSScriptRoot
@@ -17,13 +17,13 @@ if (-not (Test-Path $checkpoint -PathType Leaf)) {
 if (-not (Test-Path $motion -PathType Leaf)) {
     throw "AnimateDiff V3 motion model not found: $motion"
 }
-$out=Join-Path $root "benchmarks\results\global150_cfg65_softwild"
+$out=Join-Path $root "benchmarks\results\global150_A_cfg65_softwild"
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 Write-Host ""
 Write-Host "RTNVE GLOBAL SOFTWILD: 150 FRAMES AT 1280x720, 10 FPS" -ForegroundColor Cyan
-Write-Host "20 steps, CFG 6.5, context16 overlap8, N non-loop."
-Write-Host "SOFTWILD: high-angle crowds, faces, cars, screens, independently drifting global modifiers. No masks."
+Write-Host "20 steps, CFG 6.5, context16 overlap8, A circular loop."
+Write-Host "SOFTWILD: high-angle crowds, faces, cars, screens, circular global modifiers, deep teal shadows and red/orange LED accents. No masks."
 Write-Host "One global latent video, no LoRA tags, no stitching or clips."
 Write-Host "Full-resolution GPU preflight. No lower-resolution fallback."
 Write-Host "One whole-frame conditioning stream; no regional attention."
