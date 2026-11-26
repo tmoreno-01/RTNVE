@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from animatediff_long_context import SlidingContextController, uniform_contexts
 from animatediff_v3 import prepare_model
-from overnight_1000 import gpu_preflight, decode_to_mp4, progress_status
-from global_softwild_prompt_travel import make_plan, encode_global_conditioning
+from overnight_1000 import decode_to_mp4, progress_status
+from global_softwild_prompt_travel import make_plan, encode_global_conditioning, LOOP_MODE
 
 def cli():
     p=argparse.ArgumentParser(description=__doc__)
@@ -21,10 +21,10 @@ def cli():
     p.add_argument("--motion",required=True,type=Path)
     p.add_argument("--seed",type=int,default=611)
     p.add_argument("--travel-seed",type=int,default=9191)
-    p.add_argument("--out",type=Path,default=Path("benchmarks/results/global150_cfg65_softwild"))
+    p.add_argument("--out",type=Path,default=Path("benchmarks/results/global150_A_cfg65_softwild"))
     a=p.parse_args()
     a.frames=150;a.width=1280;a.height=720;a.fps=10
-    a.steps=20;a.guidance=6.5;a.window=16;a.overlap=8
+    a.steps=20;a.guidance=6.5;a.window=16;a.overlap=8;a.loop=LOOP_MODE
     return a
 
 def main():
@@ -53,7 +53,10 @@ def main():
     plan=make_plan(a.frames,a.travel_seed)
     negative=plan["negative"]
     first_prompt=plan["prompts"][0]
-    label="global_softwild"
+    label="global_softwild_reference_loop"
+    if plan["loop"]!=a.loop:
+        raise RuntimeError("Prompt and temporal loop modes differ")
+    planned_calls=sum(len(uniform_contexts(step,a.frames,16,1,8,a.loop)) for step in range(a.steps))
     plan_path=a.out/"global_prompt_plan.json"
     plan_path.write_text(json.dumps(plan,indent=2,ensure_ascii=False),encoding="utf-8")
 
@@ -61,8 +64,8 @@ def main():
     print(f"RTNVE {label.upper()}: one connected latent video")
     print(f"FRAMES: {a.frames}; FPS: {a.fps}; PLAYBACK: {a.frames/a.fps:.0f} sec")
     print(f"TARGET: {a.width}x{a.height}, {a.steps} steps, CFG {a.guidance}")
-    print(f"CONTEXT: 16/8, stride 1, N (absolutely no loop)")
-    print("Four whole-frame scenes; independently drifting modifier pairs. No regional masks.")
+    print(f"CONTEXT: 16/8, stride 1, {a.loop} (circular)")
+    print("Four circular whole-frame scenes; independently drifting modifier pairs. No regional masks.")
     print("NO LoRAs. No server inference. This is SLOW offline CUDA synthesis.")
     print("PROGRESS file: ",a.out/"status.json")
     print("WARN: global denoising does not yet support resuming")
@@ -77,7 +80,22 @@ def main():
     # Preserve original SD1.5 VAE visual detail; no spatial tiling until
     # experience indicates a decoder OOM at a single 720p frame.
     progress_status(a.out,"preflight")
-    gpu_preflight(pipe,a)
+    original=pipe.unet.forward
+    probe=SlidingContextController(pipe.unet,16,16,8,1,a.loop)
+    try:
+        pipe.unet.forward=probe.forward
+        with torch.inference_mode():
+            result=pipe(prompt=first_prompt,negative_prompt=negative,num_frames=16,
+                        width=a.width,height=a.height,num_inference_steps=1,
+                        guidance_scale=a.guidance,generator=torch.Generator("cuda").manual_seed(a.seed),
+                        output_type="latent")
+        del result
+        torch.cuda.synchronize()
+        print(f"PREFLIGHT PASS: {a.width}x{a.height}, loop {probe.loop}",flush=True)
+    finally:
+        pipe.unet.forward=original
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # Report and preserve actual resolution, never silently pretend fallback=720p.
     manifest={
@@ -85,7 +103,7 @@ def main():
         "created":datetime.now(timezone.utc).isoformat(),
         "frames":a.frames,"width":a.width,"height":a.height,"fps":a.fps,
         "steps":a.steps,"guidance":a.guidance,"seed":a.seed,
-        "context_window":16,"context_overlap":8,"stride":1,"loop":"N",
+        "context_window":16,"context_overlap":8,"stride":1,"loop":a.loop,
         "checkpoint":str(a.checkpoint),"motion":str(a.motion),
         "prompt_plan":str(plan_path),
         "prompt_mode":label,"negative_prompt":negative,
@@ -94,7 +112,7 @@ def main():
         "individual_transition_lengths": [seg["transition_frames"] for seg in plan["segments"]],
         "torch":torch.__version__,"diffusers":diffusers.__version__,
         "fallback_used":(a.width,a.height)!=(1280,720),
-        "note":"No midstep-resume; all latents jointly denoised, then stream-decoded."
+        "note":"Circular temporal windows and periodic conditioning encourage a loop; visual seam not guaranteed. No midstep-resume."
     }
     (a.out/"run_manifest.json").write_text(json.dumps(manifest,indent=2),encoding="utf-8")
     print(f"Encoding {label} prompt CLIP bank.",flush=True)
@@ -105,9 +123,10 @@ def main():
     torch.cuda.empty_cache()
 
     controller=SlidingContextController(
-        pipe.unet,a.frames,16,8,1,"N",frame_conditioning=frame_conditioning
+        pipe.unet,a.frames,16,8,1,a.loop,frame_conditioning=frame_conditioning
     )
-    windows=len(uniform_contexts(0,a.frames,16,1,8,"N"))
+    windows=len(uniform_contexts(0,a.frames,16,1,8,a.loop))
+    print(f"Verified live controller loop: {controller.loop}",flush=True)
     print(f"GLOBAL VIDEO: {windows} UNet windows per diffusion step (not clip segments).")
     print("STARTING FULL DIFFUSION (no VAE decoding until ALL steps finish)",flush=True)
     original_forward=pipe.unet.forward
@@ -150,10 +169,12 @@ def main():
 
     if generated is None:
         raise RuntimeError("Denoising returned no latent video")
+    if controller.total_unet_calls!=planned_calls:
+        raise RuntimeError("Unexpected circular context call count")
     latent=generated.frames
     del generated;gc.collect()
     torch.save(latent.detach().cpu(),a.out/"completed_latents.pt")
-    name=f"RTNVE_global_150f_1280x720_N_cfg65_seed{a.seed}.mp4"
+    name=f"RTNVE_global_150f_1280x720_loopA_cfg65_seed{a.seed}.mp4"
     output=a.out/name
     progress_status(a.out,"encoding",info={"latent_seconds":round(seconds,2)})
 
