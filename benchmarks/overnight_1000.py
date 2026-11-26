@@ -103,7 +103,7 @@ def gpu_preflight(pipe,args):
         torch.cuda.empty_cache()
 
 
-def decode_to_mp4(pipe, latents, destination:Path, fps:int, log_callback=None):
+def decode_to_mp4(pipe, latents, destination:Path, fps:int, log_callback=None, *, crop_size=None):
     """Stream one neural VAE frame at a time; never create a 1000-frame PIL list."""
     import torch
     import numpy as np
@@ -128,6 +128,13 @@ def decode_to_mp4(pipe, latents, destination:Path, fps:int, log_callback=None):
                 frame=(pixels.permute(1,2,0).round().byte().cpu().numpy())
                 if frame.dtype != np.uint8 or frame.shape[-1]!=3:
                     raise RuntimeError("Unexpected VAE RGB frame")
+                if crop_size is not None:
+                    width,height=crop_size
+                    source_h,source_w=frame.shape[:2]
+                    if not (0<width<=source_w and 0<height<=source_h and width%2==0 and height%2==0):
+                        raise ValueError("Invalid output crop size")
+                    x=(source_w-width)//2;y=(source_h-height)//2
+                    frame=np.ascontiguousarray(frame[y:y+height,x:x+width])
                 writer.append_data(frame)
                 del mini,reconstructed,pixels,frame
                 if (i+1)%25==0 or i==n-1:

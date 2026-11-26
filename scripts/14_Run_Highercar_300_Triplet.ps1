@@ -1,5 +1,6 @@
-# Three sequential 300-frame Highercar variants, R-P, V3/CyberRealistic.
+# Three sequential 300-frame Highercar variants plus a high-resolution test, R-P, V3/CyberRealistic.
 # Prevents Windows system sleep while running; monitor may sleep.
+param([switch]$OnlyHighres)
 $ErrorActionPreference="Stop"
 $root=Split-Path -Parent $PSScriptRoot
 Set-Location $root
@@ -16,13 +17,18 @@ if (-not (Test-Path $motion -PathType Leaf)) {
     throw "AnimateDiff V3 motion model not found: $motion"
 }
 $out=Join-Path $root "benchmarks\results\highercar_300_triplet"
+if ($OnlyHighres) { $out=Join-Path $root "benchmarks\results\highercar_50_highres" }
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 Write-Host ""
-Write-Host "RTNVE HIGHERCAR TRIPLET: THREE 300-FRAME MP4S AT 1280x720, 10 FPS" -ForegroundColor Cyan
-Write-Host "All three: seed 144, 300 frames, 20 steps, R-P loop."
-Write-Host "Baseline CFG5 16/4; dark CFG5 16/4; soft CFG4.5 16/8. No LoRAs."
-Write-Host "Three independent whole-frame renders, no prompt travel or masks."
+if ($OnlyHighres) {
+    Write-Host "RTNVE HIGHERCAR: HIGH-RESOLUTION TEST ONLY" -ForegroundColor Cyan
+} else {
+    Write-Host "RTNVE HIGHERCAR: THREE 300-FRAME 720p TESTS PLUS ONE 50-FRAME 900p TEST" -ForegroundColor Cyan
+    Write-Host "Baseline CFG5 16/4; dark CFG5 16/4; soft CFG4.5 16/8."
+}
+Write-Host "High-res: baseline prompt, CFG5 16/4, native 1600x904 cropped to 1600x900."
+Write-Host "All: seed 144, 20 steps, R-P, 10 FPS, no LoRAs, prompt travel or masks."
 Write-Host "Full-resolution GPU preflight. No lower-resolution fallback."
 Write-Host "One whole-frame conditioning stream; no regional attention."
 Write-Host "It CANNOT resume unfinished global denoising after power loss."
@@ -42,14 +48,15 @@ $argsList=@(
     "--motion", $motion,
     "--out", $out
 )
+if ($OnlyHighres) { $argsList += "--only-highres" }
 try {
     & $pythonExe $script @argsList
     if ($LASTEXITCODE -ne 0) {
-        throw "Highercar triplet stopped on an error. Completed earlier clips remain saved. Copy the error from the Python console."
+        throw "Highercar tests stopped on an error. Completed earlier clips remain saved. Copy the error from the Python console."
     }
 } finally {
     [void][RTNVEHighercarPower]::SetThreadExecutionState([uint32]2147483648)
 }
 Write-Host ""
-Write-Host "SUCCESS. Upload the three MP4s and triplet_manifest.json." -ForegroundColor Green
+Write-Host "SUCCESS. Upload the MP4s and triplet_manifest.json." -ForegroundColor Green
 Write-Host "Results: $out"
