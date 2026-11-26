@@ -23,7 +23,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($file in @('scripts/00_Update.ps1', 'scripts/01_Setup.ps1', 'scripts/02_Run_Benchmark.ps1', 'scripts/03_Run_Temporal.ps1', 'scripts/04_Build_Probe.ps1', 'scripts/05_Test_VAE_Quality.ps1', 'scripts/06_Run_Overnight.ps1', 'scripts/07_Run_Curated.ps1', 'scripts/08_Run_Curated_200.ps1', 'scripts/09_Run_Regional_Loop.ps1', 'scripts/10_Run_Regional_Loop_150.ps1', 'scripts/11_Run_Regional_Softwild.ps1')) {
+          foreach ($file in @('scripts/00_Update.ps1', 'scripts/01_Setup.ps1', 'scripts/02_Run_Benchmark.ps1', 'scripts/03_Run_Temporal.ps1', 'scripts/04_Build_Probe.ps1', 'scripts/05_Test_VAE_Quality.ps1', 'scripts/06_Run_Overnight.ps1', 'scripts/07_Run_Curated.ps1', 'scripts/08_Run_Curated_200.ps1', 'scripts/09_Run_Regional_Loop.ps1', 'scripts/10_Run_Regional_Loop_150.ps1', 'scripts/11_Run_Regional_Softwild.ps1', 'scripts/12_Run_Global_Softwild.ps1')) {
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile(
