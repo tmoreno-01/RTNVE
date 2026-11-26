@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"benchmarks"))
-from highercar_300_triplet import REFERENCES, BASE, LOOP, WIDTH, HEIGHT, FPS, WINDOW, STRIDE, render_size, output_size
+from highercar_300_triplet import REFERENCES, HIGHRES_REFERENCES, BASE, LOOP, WIDTH, HEIGHT, FPS, WINDOW, STRIDE, render_size, output_size
 from animatediff_long_context import uniform_contexts
 
 class HighercarTripletTests(unittest.TestCase):
@@ -22,3 +22,18 @@ class HighercarTripletTests(unittest.TestCase):
                 self.assertEqual({f for w in windows for f in w},set(range(r["frames"])))
                 if r["frames"]==300:
                     self.assertEqual(len(windows),25 if r["overlap"]==4 else 37)
+
+    def test_highres_triplet(self):
+        self.assertEqual([(r["frames"],r["seed"],r["steps"],r["guidance"],r["overlap"]) for r in HIGHRES_REFERENCES],
+                         [(50,1223,20,5.,4),(50,731,20,5.,4),(50,2849,20,4.8,6)])
+        self.assertEqual(HIGHRES_REFERENCES[0]["prompt"],BASE["prompt"])
+        self.assertEqual(len({r["filename"] for r in REFERENCES+HIGHRES_REFERENCES}),7)
+        for r in HIGHRES_REFERENCES:
+            self.assertTrue(r["prompt"].startswith(BASE["prompt"]))
+            self.assertEqual(r["negative"],BASE["negative"])
+            self.assertEqual(render_size(r),(1600,904))
+            self.assertEqual(output_size(r),(1600,900))
+            for step in range(r["steps"]):
+                windows=uniform_contexts(step,r["frames"],WINDOW,STRIDE,r["overlap"],LOOP)
+                self.assertEqual({f for w in windows for f in w},set(range(50)))
+                self.assertEqual(len(windows),4 if r["overlap"]==4 else 5)

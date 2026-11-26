@@ -1,7 +1,8 @@
 # Three sequential 300-frame Highercar variants plus a high-resolution test, R-P, V3/CyberRealistic.
 # Prevents Windows system sleep while running; monitor may sleep.
-param([switch]$OnlyHighres)
+param([switch]$OnlyHighres, [switch]$HighresTriplet)
 $ErrorActionPreference="Stop"
+if ($OnlyHighres -and $HighresTriplet) { throw "Select only one high-resolution mode." }
 $root=Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $pythonExe=Join-Path $root ".venv\Scripts\python.exe"
@@ -18,17 +19,25 @@ if (-not (Test-Path $motion -PathType Leaf)) {
 }
 $out=Join-Path $root "benchmarks\results\highercar_300_triplet"
 if ($OnlyHighres) { $out=Join-Path $root "benchmarks\results\highercar_50_highres" }
+if ($HighresTriplet) { $out=Join-Path $root "benchmarks\results\highercar_900p_triplet" }
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 Write-Host ""
-if ($OnlyHighres) {
+if ($HighresTriplet) {
+    Write-Host "RTNVE HIGHERCAR: THREE NEW 50-FRAME 900p TESTS" -ForegroundColor Cyan
+    Write-Host "01 Original: seed 1223, CFG5, 16/4; 02 Subtle dark: seed 731, CFG5, 16/4."
+    Write-Host "03 Hybrid: seed 2849, CFG4.8, 16/6. Native 1600x904 cropped to 1600x900."
+} elseif ($OnlyHighres) {
     Write-Host "RTNVE HIGHERCAR: HIGH-RESOLUTION TEST ONLY" -ForegroundColor Cyan
 } else {
     Write-Host "RTNVE HIGHERCAR: THREE 300-FRAME 720p TESTS PLUS ONE 50-FRAME 900p TEST" -ForegroundColor Cyan
     Write-Host "Baseline CFG5 16/4; dark CFG5 16/4; soft CFG4.5 16/8."
 }
-Write-Host "High-res: baseline prompt, CFG5 16/4, native 1600x904 cropped to 1600x900."
-Write-Host "All: seed 144, 20 steps, R-P, 10 FPS, no LoRAs, prompt travel or masks."
+if (-not $HighresTriplet) {
+    Write-Host "High-res: baseline prompt, CFG5 16/4, native 1600x904 cropped to 1600x900."
+    Write-Host "All: seed 144."
+}
+Write-Host "All: 20 steps, R-P, 10 FPS, no LoRAs, prompt travel or masks."
 Write-Host "Full-resolution GPU preflight. No lower-resolution fallback."
 Write-Host "One whole-frame conditioning stream; no regional attention."
 Write-Host "It CANNOT resume unfinished global denoising after power loss."
@@ -49,6 +58,7 @@ $argsList=@(
     "--out", $out
 )
 if ($OnlyHighres) { $argsList += "--only-highres" }
+if ($HighresTriplet) { $argsList += "--highres-triplet" }
 try {
     & $pythonExe $script @argsList
     if ($LASTEXITCODE -ne 0) {

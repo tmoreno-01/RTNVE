@@ -27,6 +27,19 @@ REFERENCES = (
          filename="RTNVE_highercar_50f_1600x900_loopRP_cfg5_seed144.mp4"),
 )
 
+# Keep the proven 900p path and original batch untouched; only conditioning,
+# seed and the third preset's CFG/overlap differ in this new experiment.
+HIGHRES_REFERENCES = (
+    dict(REFERENCES[-1], name="01_original", seed=1223,
+         filename="RTNVE_highercar_original_50f_1600x900_loopRP_cfg5_seed1223.mp4"),
+    dict(REFERENCES[-1], name="02_subtle_dark", seed=731,
+         prompt=BASE["prompt"]+", deep shadows, moody contrast",
+         filename="RTNVE_highercar_subtledark_50f_1600x900_loopRP_cfg5_seed731.mp4"),
+    dict(REFERENCES[-1], name="03_hybrid", seed=2849, guidance=4.8, overlap=6,
+         prompt=BASE["prompt"]+", moody contrast, smeared reflections, fractured glass",
+         filename="RTNVE_highercar_hybrid_50f_1600x900_loopRP_cfg48_seed2849_ctx16-6.mp4"),
+)
+
 def render_size(ref):
     return ref.get("native_width", WIDTH), ref.get("native_height", HEIGHT)
 
@@ -40,10 +53,15 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--checkpoint",required=True,type=Path)
     p.add_argument("--motion",required=True,type=Path)
-    p.add_argument("--out",type=Path,default=Path("benchmarks/results/highercar_300_triplet"))
-    p.add_argument("--only-highres",action="store_true",help="Run only test 04; use a separate output directory.")
+    p.add_argument("--out",type=Path)
+    mode=p.add_mutually_exclusive_group()
+    mode.add_argument("--only-highres",action="store_true",help="Run only the original seed-144 test 04.")
+    mode.add_argument("--highres-triplet",action="store_true",help="Run three new 50-frame 900p seed variants.")
     a=p.parse_args()
-    refs=REFERENCES[-1:] if a.only_highres else REFERENCES
+    refs=HIGHRES_REFERENCES if a.highres_triplet else REFERENCES[-1:] if a.only_highres else REFERENCES
+    if a.out is None:
+        folder="highercar_900p_triplet" if a.highres_triplet else "highercar_50_highres" if a.only_highres else "highercar_300_triplet"
+        a.out=Path("benchmarks/results")/folder
     count=len(refs)
     for path in (a.checkpoint,a.motion):
         if not path.is_file():
@@ -63,12 +81,12 @@ def main():
             raise ValueError("Invalid native/output dimensions")
         for step in range(ref["steps"]):
             uniform_contexts(step,ref["frames"],WINDOW,STRIDE,ref["overlap"],LOOP)
-    manifest=dict(width=output_size(refs[0])[0],height=output_size(refs[0])[1],fps=FPS,loop=LOOP,window=WINDOW,stride=STRIDE,
+    manifest=dict(batch="highres_triplet" if a.highres_triplet else "original_highres" if a.only_highres else "original_batch",width=output_size(refs[0])[0],height=output_size(refs[0])[1],fps=FPS,loop=LOOP,window=WINDOW,stride=STRIDE,
                   checkpoint=str(a.checkpoint),motion=str(a.motion),torch=torch.__version__,
                   diffusers=diffusers.__version__,lora=False,prompt_travel=False,regional_masks=False,
                   sampler="Diffusers DPM++ 2M SDE exponential approximation",
                   emphasis="Explicit numeric groups, weighted CLIP outputs with mean normalization",
-                  notes="Baseline preserves the successful 100-frame Highercar test except length. Dark changes prompt only; soft changes prompt, CFG and overlap. Test 04 uses baseline conditioning, 50 frames, native 1600x904 cropped to 1600x900 (no scaling). No post-grade or Topaz enhancement.",
+                  notes=("Three new seeds, original baseline prompt or restrained dark/hybrid variations. All native 1600x904 cropped to 1600x900; no scaling or post-grade." if a.highres_triplet else "Baseline preserves the successful 100-frame Highercar test except length. Dark changes prompt only; soft changes prompt, CFG and overlap. Test 04 uses baseline conditioning, 50 frames, native 1600x904 cropped to 1600x900 (no scaling). No post-grade or Topaz enhancement."),
                   references=[dict(r,width=output_size(r)[0],height=output_size(r)[1],native_width=render_size(r)[0],native_height=render_size(r)[1]) for r in refs],results=[])
     write_json(a.out/"triplet_manifest.json",manifest)
     progress_status(a.out,"loading")
@@ -109,7 +127,7 @@ def main():
         out.mkdir(exist_ok=True)
         name=ref["filename"]
         destination=out/name
-        print(f"\nHIGHERCAR {index}/{count}: {ref['source']} | {ref['frames']} frames | native {native_w}x{native_h} -> {output_w}x{output_h} | CFG {ref['guidance']} | {ref['steps']} steps | 16/{ref['overlap']} | R-P",flush=True)
+        print(f"\nHIGHERCAR {index}/{count}: {ref['source']} | {ref['frames']} frames | native {native_w}x{native_h} -> {output_w}x{output_h} | seed {ref['seed']} | CFG {ref['guidance']} | {ref['steps']} steps | 16/{ref['overlap']} | R-P",flush=True)
         print("PROMPT:",ref["prompt"],"\nNEGATIVE:",ref["negative"],flush=True)
         plain,pos,neg=encode_static(pipe,ref)
         n=ref["frames"]
