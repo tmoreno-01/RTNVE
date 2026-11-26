@@ -41,6 +41,9 @@ $files = @(
     "benchmarks/global_softwild_150.py",
     "scripts/12_Run_Global_Softwild.ps1",
     "12_RENDER_GLOBAL_SOFTWILD.bat",
+    "benchmarks/reference_match_triplet.py",
+    "scripts/13_Run_Reference_Triplet.ps1",
+    "13_RENDER_REFERENCE_TRIPLET.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""
