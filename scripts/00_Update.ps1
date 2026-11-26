@@ -37,6 +37,10 @@ $files = @(
     "benchmarks/regional_loop_150_softwild.py",
     "scripts/11_Run_Regional_Softwild.ps1",
     "11_RENDER_REGIONAL_SOFTWILD.bat",
+    "benchmarks/global_softwild_prompt_travel.py",
+    "benchmarks/global_softwild_150.py",
+    "scripts/12_Run_Global_Softwild.ps1",
+    "12_RENDER_GLOBAL_SOFTWILD.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""
