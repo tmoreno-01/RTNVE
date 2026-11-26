@@ -44,6 +44,9 @@ $files = @(
     "benchmarks/reference_match_triplet.py",
     "scripts/13_Run_Reference_Triplet.ps1",
     "13_RENDER_REFERENCE_TRIPLET.bat",
+    "benchmarks/highercar_300_triplet.py",
+    "scripts/14_Run_Highercar_300_Triplet.ps1",
+    "14_RENDER_HIGHERCAR_300_TRIPLET.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""
