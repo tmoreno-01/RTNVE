@@ -48,6 +48,7 @@ $files = @(
     "scripts/14_Run_Highercar_300_Triplet.ps1",
     "14_RENDER_HIGHERCAR_300_TRIPLET.bat",
     "15_RENDER_HIGHERCAR_900P_TRIPLET.bat",
+    "16_RENDER_HIGHERCAR_900P_70F_TRIPLET.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""

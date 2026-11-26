@@ -1,8 +1,8 @@
 # Three sequential 300-frame Highercar variants plus a high-resolution test, R-P, V3/CyberRealistic.
 # Prevents Windows system sleep while running; monitor may sleep.
-param([switch]$OnlyHighres, [switch]$HighresTriplet)
+param([switch]$OnlyHighres, [switch]$HighresTriplet, [switch]$Highres70Triplet)
 $ErrorActionPreference="Stop"
-if ($OnlyHighres -and $HighresTriplet) { throw "Select only one high-resolution mode." }
+if (($OnlyHighres -and ($HighresTriplet -or $Highres70Triplet)) -or ($HighresTriplet -and $Highres70Triplet)) { throw "Select only one high-resolution mode." }
 $root=Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $pythonExe=Join-Path $root ".venv\Scripts\python.exe"
@@ -20,11 +20,14 @@ if (-not (Test-Path $motion -PathType Leaf)) {
 $out=Join-Path $root "benchmarks\results\highercar_300_triplet"
 if ($OnlyHighres) { $out=Join-Path $root "benchmarks\results\highercar_50_highres" }
 if ($HighresTriplet) { $out=Join-Path $root "benchmarks\results\highercar_900p_triplet" }
+if ($Highres70Triplet) { $out=Join-Path $root "benchmarks\results\highercar_900p_70f_triplet" }
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 Write-Host ""
-if ($HighresTriplet) {
-    Write-Host "RTNVE HIGHERCAR: THREE NEW 50-FRAME 900p TESTS" -ForegroundColor Cyan
+if ($HighresTriplet -or $Highres70Triplet) {
+    $frameCount=50
+    if ($Highres70Triplet) { $frameCount=70 }
+    Write-Host "RTNVE HIGHERCAR: THREE $frameCount-FRAME 900p TESTS" -ForegroundColor Cyan
     Write-Host "01 Original: seed 1223, CFG5, 16/4; 02 Subtle dark: seed 731, CFG5, 16/4."
     Write-Host "03 Hybrid: seed 2849, CFG4.8, 16/6. Native 1600x904 cropped to 1600x900."
 } elseif ($OnlyHighres) {
@@ -33,7 +36,7 @@ if ($HighresTriplet) {
     Write-Host "RTNVE HIGHERCAR: THREE 300-FRAME 720p TESTS PLUS ONE 50-FRAME 900p TEST" -ForegroundColor Cyan
     Write-Host "Baseline CFG5 16/4; dark CFG5 16/4; soft CFG4.5 16/8."
 }
-if (-not $HighresTriplet) {
+if (-not ($HighresTriplet -or $Highres70Triplet)) {
     Write-Host "High-res: baseline prompt, CFG5 16/4, native 1600x904 cropped to 1600x900."
     Write-Host "All: seed 144."
 }
@@ -59,6 +62,7 @@ $argsList=@(
 )
 if ($OnlyHighres) { $argsList += "--only-highres" }
 if ($HighresTriplet) { $argsList += "--highres-triplet" }
+if ($Highres70Triplet) { $argsList += "--highres-70-triplet" }
 try {
     & $pythonExe $script @argsList
     if ($LASTEXITCODE -ne 0) {
