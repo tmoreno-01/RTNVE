@@ -1,8 +1,8 @@
 # Three sequential 300-frame Highercar variants plus a high-resolution test, R-P, V3/CyberRealistic.
 # Prevents Windows system sleep while running; monitor may sleep.
-param([switch]$OnlyHighres, [switch]$HighresTriplet, [switch]$Highres70Triplet)
+param([switch]$OnlyHighres, [switch]$HighresTriplet, [switch]$Highres70Triplet, [switch]$Return720pTriplet)
 $ErrorActionPreference="Stop"
-if (($OnlyHighres -and ($HighresTriplet -or $Highres70Triplet)) -or ($HighresTriplet -and $Highres70Triplet)) { throw "Select only one high-resolution mode." }
+if (([int][bool]$OnlyHighres + [int][bool]$HighresTriplet + [int][bool]$Highres70Triplet + [int][bool]$Return720pTriplet) -gt 1) { throw "Select only one render mode." }
 $root=Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $pythonExe=Join-Path $root ".venv\Scripts\python.exe"
@@ -21,10 +21,15 @@ $out=Join-Path $root "benchmarks\results\highercar_300_triplet"
 if ($OnlyHighres) { $out=Join-Path $root "benchmarks\results\highercar_50_highres" }
 if ($HighresTriplet) { $out=Join-Path $root "benchmarks\results\highercar_900p_triplet" }
 if ($Highres70Triplet) { $out=Join-Path $root "benchmarks\results\highercar_900p_70f_triplet" }
+if ($Return720pTriplet) { $out=Join-Path $root "benchmarks\results\highercar_720p_300f_return" }
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 
 Write-Host ""
-if ($HighresTriplet -or $Highres70Triplet) {
+if ($Return720pTriplet) {
+    Write-Host "RTNVE: THREE NEW 300-FRAME NATIVE 1280x720 TESTS" -ForegroundColor Cyan
+    Write-Host "01 Original seed 1223; 02 Original seed 731; 03 Subtle dark seed 1889."
+    Write-Host "All CFG5, context16/4, original negative prompt. No second pass or upscaling."
+} elseif ($HighresTriplet -or $Highres70Triplet) {
     $frameCount=50
     if ($Highres70Triplet) { $frameCount=70 }
     Write-Host "RTNVE HIGHERCAR: THREE $frameCount-FRAME 900p TESTS" -ForegroundColor Cyan
@@ -36,7 +41,7 @@ if ($HighresTriplet -or $Highres70Triplet) {
     Write-Host "RTNVE HIGHERCAR: THREE 300-FRAME 720p TESTS PLUS ONE 50-FRAME 900p TEST" -ForegroundColor Cyan
     Write-Host "Baseline CFG5 16/4; dark CFG5 16/4; soft CFG4.5 16/8."
 }
-if (-not ($HighresTriplet -or $Highres70Triplet)) {
+if (-not ($HighresTriplet -or $Highres70Triplet -or $Return720pTriplet)) {
     Write-Host "High-res: baseline prompt, CFG5 16/4, native 1600x904 cropped to 1600x900."
     Write-Host "All: seed 144."
 }
@@ -63,6 +68,7 @@ $argsList=@(
 if ($OnlyHighres) { $argsList += "--only-highres" }
 if ($HighresTriplet) { $argsList += "--highres-triplet" }
 if ($Highres70Triplet) { $argsList += "--highres-70-triplet" }
+if ($Return720pTriplet) { $argsList += "--return-720p-triplet" }
 try {
     & $pythonExe $script @argsList
     if ($LASTEXITCODE -ne 0) {

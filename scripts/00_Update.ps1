@@ -52,6 +52,7 @@ $files = @(
     "benchmarks/highercar_900p_comparison.py",
     "scripts/17_Run_Highercar_900P_Comparison.ps1",
     "17_RENDER_HIGHERCAR_900P_COMPARISON_SUITE.bat",
+    "18_RENDER_HIGHERCAR_720P_300F_TRIPLET.bat",
     "00_UPDATE_RTNVE.bat"
 )
 Write-Host ""

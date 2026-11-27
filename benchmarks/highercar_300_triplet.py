@@ -46,6 +46,18 @@ HIGHRES_70_REFERENCES = tuple(
     for ref in HIGHRES_REFERENCES
 )
 
+# Return to the proven original 720p aesthetic, changing seed rather than
+# adding more conditioning or a second diffusion pass.
+RETURN_720P_REFERENCES = (
+    dict(REFERENCES[0], name="01_original_seed1223", seed=1223,
+         filename="RTNVE_return_original_300f_1280x720_loopRP_cfg5_seed1223.mp4"),
+    dict(REFERENCES[0], name="02_original_seed731", seed=731,
+         filename="RTNVE_return_original_300f_1280x720_loopRP_cfg5_seed731.mp4"),
+    dict(REFERENCES[0], name="03_subtle_dark_seed1889", seed=1889,
+         prompt=BASE["prompt"]+", deep shadows, moody contrast",
+         filename="RTNVE_return_subtledark_300f_1280x720_loopRP_cfg5_seed1889.mp4"),
+)
+
 def render_size(ref):
     return ref.get("native_width", WIDTH), ref.get("native_height", HEIGHT)
 
@@ -64,10 +76,11 @@ def main():
     mode.add_argument("--only-highres",action="store_true",help="Run only the original seed-144 test 04.")
     mode.add_argument("--highres-triplet",action="store_true",help="Run three new 50-frame 900p seed variants.")
     mode.add_argument("--highres-70-triplet",action="store_true",help="Run the same three 900p seed variants at 70 frames.")
+    mode.add_argument("--return-720p-triplet",action="store_true",help="Three fresh 300-frame native 720p renders in the original Highercar style.")
     a=p.parse_args()
-    refs=HIGHRES_70_REFERENCES if a.highres_70_triplet else HIGHRES_REFERENCES if a.highres_triplet else REFERENCES[-1:] if a.only_highres else REFERENCES
+    refs=RETURN_720P_REFERENCES if a.return_720p_triplet else HIGHRES_70_REFERENCES if a.highres_70_triplet else HIGHRES_REFERENCES if a.highres_triplet else REFERENCES[-1:] if a.only_highres else REFERENCES
     if a.out is None:
-        folder="highercar_900p_70f_triplet" if a.highres_70_triplet else "highercar_900p_triplet" if a.highres_triplet else "highercar_50_highres" if a.only_highres else "highercar_300_triplet"
+        folder="highercar_720p_300f_return" if a.return_720p_triplet else "highercar_900p_70f_triplet" if a.highres_70_triplet else "highercar_900p_triplet" if a.highres_triplet else "highercar_50_highres" if a.only_highres else "highercar_300_triplet"
         a.out=Path("benchmarks/results")/folder
     count=len(refs)
     for path in (a.checkpoint,a.motion):
@@ -88,12 +101,12 @@ def main():
             raise ValueError("Invalid native/output dimensions")
         for step in range(ref["steps"]):
             uniform_contexts(step,ref["frames"],WINDOW,STRIDE,ref["overlap"],LOOP)
-    manifest=dict(batch="highres_70_triplet" if a.highres_70_triplet else "highres_triplet" if a.highres_triplet else "original_highres" if a.only_highres else "original_batch",width=output_size(refs[0])[0],height=output_size(refs[0])[1],fps=FPS,loop=LOOP,window=WINDOW,stride=STRIDE,
+    manifest=dict(batch="return_720p_triplet" if a.return_720p_triplet else "highres_70_triplet" if a.highres_70_triplet else "highres_triplet" if a.highres_triplet else "original_highres" if a.only_highres else "original_batch",width=output_size(refs[0])[0],height=output_size(refs[0])[1],fps=FPS,loop=LOOP,window=WINDOW,stride=STRIDE,
                   checkpoint=str(a.checkpoint),motion=str(a.motion),torch=torch.__version__,
                   diffusers=diffusers.__version__,lora=False,prompt_travel=False,regional_masks=False,
                   sampler="Diffusers DPM++ 2M SDE exponential approximation",
                   emphasis="Explicit numeric groups, weighted CLIP outputs with mean normalization",
-                  notes=("Same three 900p seed and conditioning presets as the 50-frame triplet, extended to 70 frames. Native 1600x904 cropped to 1600x900; no scaling or post-grade." if a.highres_70_triplet else "Three new seeds, original baseline prompt or restrained dark/hybrid variations. All native 1600x904 cropped to 1600x900; no scaling or post-grade." if a.highres_triplet else "Baseline preserves the successful 100-frame Highercar test except length. Dark changes prompt only; soft changes prompt, CFG and overlap. Test 04 uses baseline conditioning, 50 frames, native 1600x904 cropped to 1600x900 (no scaling). No post-grade or Topaz enhancement."),
+                  notes=("Return to native 1280x720, 300 frames. First two use the exact favourite Highercar prompt; third adds deep shadows and moody contrast. All three use the original negative prompt, CFG5, 20 steps, context16/4 and R-P. No second pass, resizing or post-grade." if a.return_720p_triplet else "Same three 900p seed and conditioning presets as the 50-frame triplet, extended to 70 frames. Native 1600x904 cropped to 1600x900; no scaling or post-grade." if a.highres_70_triplet else "Three new seeds, original baseline prompt or restrained dark/hybrid variations. All native 1600x904 cropped to 1600x900; no scaling or post-grade." if a.highres_triplet else "Baseline preserves the successful 100-frame Highercar test except length. Dark changes prompt only; soft changes prompt, CFG and overlap. Test 04 uses baseline conditioning, 50 frames, native 1600x904 cropped to 1600x900 (no scaling). No post-grade or Topaz enhancement."),
                   references=[dict(r,width=output_size(r)[0],height=output_size(r)[1],native_width=render_size(r)[0],native_height=render_size(r)[1]) for r in refs],results=[])
     write_json(a.out/"triplet_manifest.json",manifest)
     progress_status(a.out,"loading")

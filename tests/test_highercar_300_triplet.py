@@ -2,7 +2,7 @@ import sys
 import unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"benchmarks"))
-from highercar_300_triplet import REFERENCES, HIGHRES_REFERENCES, HIGHRES_70_REFERENCES, BASE, LOOP, WIDTH, HEIGHT, FPS, WINDOW, STRIDE, render_size, output_size
+from highercar_300_triplet import REFERENCES, HIGHRES_REFERENCES, HIGHRES_70_REFERENCES, RETURN_720P_REFERENCES, BASE, LOOP, WIDTH, HEIGHT, FPS, WINDOW, STRIDE, render_size, output_size
 from animatediff_long_context import uniform_contexts
 
 class HighercarTripletTests(unittest.TestCase):
@@ -49,3 +49,18 @@ class HighercarTripletTests(unittest.TestCase):
                 windows=uniform_contexts(step,70,WINDOW,STRIDE,current["overlap"],LOOP)
                 self.assertEqual({f for w in windows for f in w},set(range(70)))
                 self.assertEqual(len(windows),6 if current["overlap"]==4 else 7)
+
+    def test_return_720p_triplet(self):
+        self.assertEqual([(r["frames"],r["seed"],r["steps"],r["guidance"],r["overlap"]) for r in RETURN_720P_REFERENCES],
+                         [(300,1223,20,5.,4),(300,731,20,5.,4),(300,1889,20,5.,4)])
+        self.assertEqual([r["prompt"] for r in RETURN_720P_REFERENCES],
+                         [BASE["prompt"],BASE["prompt"],BASE["prompt"]+", deep shadows, moody contrast"])
+        self.assertEqual(len({r["filename"] for r in REFERENCES+HIGHRES_REFERENCES+HIGHRES_70_REFERENCES+RETURN_720P_REFERENCES}),13)
+        for r in RETURN_720P_REFERENCES:
+            self.assertEqual(r["negative"],BASE["negative"])
+            self.assertEqual(render_size(r),(1280,720))
+            self.assertEqual(output_size(r),(1280,720))
+            for step in range(r["steps"]):
+                windows=uniform_contexts(step,r["frames"],WINDOW,STRIDE,r["overlap"],LOOP)
+                self.assertEqual({f for w in windows for f in w},set(range(300)))
+                self.assertEqual(len(windows),25)
